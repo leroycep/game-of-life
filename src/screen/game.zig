@@ -4,12 +4,15 @@ const Screen = screen.Screen;
 const platform = @import("../platform.zig");
 const components = platform.components;
 const Vec2f = platform.Vec2f;
+const Vec2i = @import("../utils.zig").Vec2i;
 const Context = platform.Context;
 const Renderer = platform.Renderer;
 const game = @import("../game.zig");
 
 const DEFAULT_GRID_WIDTH = 15;
 const DEFAULT_GRID_HEIGHT = 15;
+const CELL_WIDTH = 16;
+const CELL_HEIGHT = 16;
 
 const GridOfLife = struct {
     width: usize,
@@ -79,15 +82,20 @@ pub const Game = struct {
             },
             .MouseButtonDown => |ev| switch (ev.button) {
                 .Left => {
-                    platform.warn("left button pressed: {}", .{ev.pos});
-                    self.grid.get_unchecked(0, 0).* = true;
-                    self.grid.get_unchecked(1, 1).* = true;
-                    self.grid.get_unchecked(3, 3).* = true;
+                    if (self.cell_at_point(ev.pos)) |cell| {
+                        cell.* = !cell.*;
+                    }
                 },
                 else => {},
             },
             else => {},
         }
+    }
+
+    fn cell_at_point(self: *@This(), pos: Vec2i) ?*bool {
+        const cell_x = @intCast(usize, pos.x()) / CELL_WIDTH;
+        const cell_y = @intCast(usize, pos.y()) / CELL_HEIGHT;
+        return self.grid.get(cell_x, cell_y);
     }
 
     pub fn update(screenPtr: *Screen, context: *Context, time: f64, delta: f64) ?screen.Transition {
