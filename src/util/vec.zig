@@ -132,6 +132,16 @@ pub fn Vec(comptime S: usize, comptime T: type) type {
             return sum;
         }
 
+        pub fn eql(self: @This(), other: @This()) bool {
+            comptime var i = 0;
+            inline while (i < S) : (i += 1) {
+                if (self.v[i] != other.v[i]) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
         pub fn intToFloat(self: @This(), comptime F: type) Vec(S, F) {
             var res: [S]F = undefined;
 

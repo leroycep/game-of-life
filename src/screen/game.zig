@@ -22,6 +22,8 @@ pub const Game = struct {
     quit_pressed: bool = false,
     paused: bool,
     step_once: bool,
+    start_cell: Vec2i,
+    prev_cell: Vec2i,
 
     grid: GridOfLife,
 
@@ -39,6 +41,7 @@ pub const Game = struct {
             .paused = true,
             .step_once = false,
             .grid = grid,
+            .start_cell = Vec2i.init(-1, -1),
         };
         self.grid.get_unchecked(2, 0).* = true;
         return self;
@@ -56,20 +59,39 @@ pub const Game = struct {
             },
             .MouseButtonDown => |ev| switch (ev.button) {
                 .Left => if (self.paused) {
-                    if (self.cell_at_point(ev.pos)) |cell| {
+                    self.start_cell = self.point_to_cell(ev.pos);
+                    self.prev_cell = self.start_cell;
+                    if (self.grid.get(self.start_cell.x(), self.start_cell.y())) |cell| {
                         cell.* = !cell.*;
                     }
                 },
                 else => {},
+            },
+            .MouseMotion => |ev| if (self.paused) {
+                setting_cells: {
+                    const current_cell = self.point_to_cell(ev.pos);
+                    if (self.start_cell.eql(current_cell)) break :setting_cells;
+                    if (ev.buttons & platform.MOUSE_BUTTONS.PRIMARY == 0) break :setting_cells;
+                    if (self.grid.get(current_cell.x(), current_cell.y())) |cell| {
+                        cell.* = true;
+                    }
+                    self.prev_cell = current_cell;
+                }
             },
             else => {},
         }
     }
 
     fn cell_at_point(self: *@This(), pos: Vec2i) ?*bool {
-        const cell_x = @intCast(usize, pos.x()) / CELL_WIDTH;
-        const cell_y = @intCast(usize, pos.y()) / CELL_HEIGHT;
+        const cell_x = @divFloor(pos.x(), CELL_WIDTH);
+        const cell_y = @divFloor(pos.y(), CELL_HEIGHT);
         return self.grid.get(cell_x, cell_y);
+    }
+
+    fn point_to_cell(self: *@This(), pos: Vec2i) Vec2i {
+        const cell_x = @divFloor(pos.x(), CELL_WIDTH);
+        const cell_y = @divFloor(pos.y(), CELL_HEIGHT);
+        return Vec2i.init(cell_x, cell_y);
     }
 
     pub fn update(screenPtr: *Screen, context: *Context, time: f64, delta: f64) ?screen.Transition {
@@ -98,16 +120,16 @@ pub const Game = struct {
         context.renderer.fill_rect(0, 0, screen_size.x(), screen_size.y());
 
         context.renderer.set_stroke_style(.{ .Color = .{ .r = 0xCC, .g = 0xCC, .b = 0xCC, .a = 255 } });
-        context.renderer.begin_path();
         context.renderer.set_line_cap(.square);
         context.renderer.set_line_width(1.5);
-        context.renderer.set_line_dash(&[_]i32{4, 8, 4, 0});
-        var y: usize = 0;
+        context.renderer.set_line_dash(&[_]i32{ 4, 8, 4, 0 });
+        context.renderer.begin_path();
+        var y: isize = 0;
         while (y <= self.grid.height) : (y += 1) {
             context.renderer.move_to(0, @intToFloat(f32, y) * CELL_HEIGHT);
             context.renderer.line_to(@intToFloat(f32, self.grid.width) * CELL_WIDTH, @intToFloat(f32, y) * CELL_HEIGHT);
         }
-        var x: usize = 0;
+        var x: isize = 0;
         while (x <= self.grid.height) : (x += 1) {
             context.renderer.move_to(@intToFloat(f32, x) * CELL_WIDTH, 0);
             context.renderer.line_to(@intToFloat(f32, x) * CELL_WIDTH, @intToFloat(f32, self.grid.height) * CELL_HEIGHT);

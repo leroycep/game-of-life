@@ -31,7 +31,7 @@ pub const Event = union(enum) {
     TextEditing: void,
     TextInput: void,
 
-    MouseMotion: Vec2i,
+    MouseMotion: MouseMoveEvent,
     MouseButtonDown: MouseButtonEvent,
     MouseButtonUp: MouseButtonEvent,
     MouseWheel: Vec2i,
@@ -51,6 +51,15 @@ pub const MouseButton = enum(u8) {
     X2,
 };
 
+pub const MOUSE_BUTTONS = struct {
+    pub const PRIMARY = 0x01;
+    pub const SECONDARY = 0x02;
+    pub const AUXILIARY = 0x04;
+    pub const X1 = 0x08;
+    pub const X2 = 0x10;
+};
+
+pub const MouseMoveEvent = struct { pos: Vec2i, buttons: u32 };
 pub const MouseButtonEvent = struct { pos: Vec2i, button: MouseButton };
 
 pub const Scancode = enum(u16) {

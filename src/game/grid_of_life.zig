@@ -25,12 +25,12 @@ pub const GridOfLife = struct {
         alloc.free(self.cells_next);
     }
 
-    pub fn get(self: @This(), x: usize, y: usize) ?*bool {
+    pub fn get(self: @This(), x: isize, y: isize) ?*bool {
         const i = self.idx(x, y) orelse return null;
         return &self.cells[i];
     }
 
-    pub fn get_unchecked(self: @This(), x: usize, y: usize) *bool {
+    pub fn get_unchecked(self: @This(), x: isize, y: isize) *bool {
         const i = self.idx(x, y) orelse unreachable;
         return &self.cells[i];
     }
@@ -40,9 +40,9 @@ pub const GridOfLife = struct {
         return &self.cells[i];
     }
 
-    pub fn idx(self: @This(), x: usize, y: usize) ?usize {
-        if (x >= self.width or y >= self.height) return null;
-        return y * self.width + x;
+    pub fn idx(self: @This(), x: isize, y: isize) ?usize {
+        if (x < 0 or x >= self.width or y < 0 or y >= self.height) return null;
+        return @intCast(usize, y) * self.width + @intCast(usize, x);
     }
 
     pub fn idx_wrapping(self: @This(), x: isize, y: isize) usize {

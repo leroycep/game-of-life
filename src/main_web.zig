@@ -36,9 +36,9 @@ export fn onInit() void {
     app.onInit(&context);
 }
 
-export fn onMouseMove(x: i32, y: i32) void {
+export fn onMouseMove(x: i32, y: i32, buttons: u32) void {
     app.onEvent(&context, .{
-        .MouseMotion = Vec2i.init(x, y),
+        .MouseMotion = .{ .pos = Vec2i.init(x, y), .buttons = buttons },
     });
 }
 
