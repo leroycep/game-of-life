@@ -97,7 +97,7 @@ fetch("snake-game.wasm")
 
     canvas.addEventListener("mousemove", ev => {
       const rect = canvas.getBoundingClientRect();
-      instance.exports.onMouseMove(ev.x - rect.left, ev.y - rect.top);
+      instance.exports.onMouseMove(ev.x - rect.left, ev.y - rect.top, ev.buttons);
     });
 
     canvas.addEventListener("mousedown", (ev) => {
@@ -105,7 +105,7 @@ fetch("snake-game.wasm")
       const zigConst = mouseBtnCodeMap[ev.button];
       if (zigConst !== undefined) {
         const zigCode = new Uint8Array(memory.buffer, zigConst, 1)[0];
-        instance.exports.onMouseButton(ev.x - rect.left, ev.y - rect.top, 0, zigCode);
+        instance.exports.onMouseButton(ev.x - rect.left, ev.y - rect.top, 1, zigCode);
       }
     });
 
@@ -114,7 +114,7 @@ fetch("snake-game.wasm")
       const zigConst = mouseBtnCodeMap[ev.button];
       if (zigConst !== undefined) {
         const zigCode = new Uint8Array(memory.buffer, zigConst, 1)[0];
-        instance.exports.onMouseButton(ev.x - rect.left, ev.y - rect.top, 1, zigCode);
+        instance.exports.onMouseButton(ev.x - rect.left, ev.y - rect.top, 0, zigCode);
       }
     });
 
