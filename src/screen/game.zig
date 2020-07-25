@@ -63,6 +63,11 @@ pub const Game = struct {
                 .ESCAPE => self.quit_pressed = true,
                 .SPACE => self.paused = !self.paused,
                 .RIGHT => self.step_once = true,
+                .UP => self.ticks_per_step += 1,
+                .DOWN => {
+                    self.ticks_per_step -= 1;
+                    self.ticks_per_step = std.math.max(self.ticks_per_step, 0);
+                },
                 else => {},
             },
             .MouseButtonDown => |ev| switch (ev.button) {
