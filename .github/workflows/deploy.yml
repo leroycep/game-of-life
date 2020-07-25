@@ -1,0 +1,27 @@
+name: Deploy to Github Pages
+on:
+    push:
+        branches: [master]
+jobs:
+    build-and-deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+              with:
+                  persist-credentials: false
+
+            - name: Download latest zig
+              uses: goto-bus-stop/setup-zig@v1
+              with:
+                  version: master
+
+            - name: Build snake-game
+              run: zig build wasm -Drelease-safe
+
+            - name: Deploy
+              uses: JamesIves/github-pages-deploy-action@releases/v3
+              with:
+                  ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+                  BRANCH: gh-pages
+                  FOLDER: zig-cache/www
