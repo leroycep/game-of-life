@@ -128,7 +128,8 @@ fetch("snake-game.wasm")
       ArrowRight: ex.SCANCODE_RIGHT,
       ArrowUp: ex.SCANCODE_UP,
       ArrowDown: ex.SCANCODE_DOWN,
-      Escape: ex.SCANCODE_ESCAPE
+      Escape: ex.SCANCODE_ESCAPE,
+      Space: ex.SCANCODE_SPACE
     };
     document.addEventListener("keydown", ev => {
       if (ev.defaultPrevented) {

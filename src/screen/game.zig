@@ -80,6 +80,7 @@ pub const Game = struct {
             .Quit => platform.quit(),
             .KeyDown => |ev| switch (ev.scancode) {
                 .ESCAPE => self.quit_pressed = true,
+                .SPACE => self.paused = !self.paused,
                 else => {},
             },
             .MouseButtonDown => |ev| switch (ev.button) {

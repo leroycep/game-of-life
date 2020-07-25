@@ -14,6 +14,7 @@ export const SCANCODE_LEFT = @enumToInt(platform.Scancode.LEFT);
 export const SCANCODE_RIGHT = @enumToInt(platform.Scancode.RIGHT);
 export const SCANCODE_UP = @enumToInt(platform.Scancode.UP);
 export const SCANCODE_DOWN = @enumToInt(platform.Scancode.DOWN);
+export const SCANCODE_SPACE = @enumToInt(platform.Scancode.SPACE);
 
 export const MOUSE_BUTTON_LEFT = @enumToInt(platform.MouseButton.Left);
 export const MOUSE_BUTTON_MIDDLE = @enumToInt(platform.MouseButton.Middle);
