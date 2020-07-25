@@ -1,5 +1,5 @@
 usingnamespace @import("common.zig");
-pub usingnamespace @import("web/canvas_generated.zig");
+pub usingnamespace @import("./web_canvas_generated.zig");
 const Component = @import("components.zig").Component;
 const warn = @import("../platform.zig").warn;
 const Vec2i = @import("../utils.zig").Vec2i;

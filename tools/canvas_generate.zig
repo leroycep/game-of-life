@@ -245,6 +245,6 @@ fn writeJsFile(filename: []const u8) !void {
 }
 
 pub fn main() !void {
-    try writeZigFile("src/platform/web/canvas_generated.zig");
+    try writeZigFile("src/platform/web_canvas_generated.zig");
     try writeJsFile("js/canvas_generated.js");
 }
