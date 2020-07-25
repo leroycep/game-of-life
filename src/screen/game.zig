@@ -3,7 +3,8 @@ const screen = @import("../screen.zig");
 const Screen = screen.Screen;
 const platform = @import("../platform.zig");
 const components = platform.components;
-const Vec2f = platform.Vec2f;
+const Vec = @import("../utils.zig").Vec;
+const Vec2f = @import("../utils.zig").Vec2f;
 const Vec2i = @import("../utils.zig").Vec2i;
 const Context = platform.Context;
 const Renderer = platform.Renderer;
@@ -25,11 +26,14 @@ pub const Game = struct {
     start_cell: Vec2i,
     prev_cell: Vec2i,
 
+    camera_pos: Vec2f,
+
     grid: GridOfLife,
 
     pub fn init(alloc: *std.mem.Allocator) !*@This() {
         const self = try alloc.create(@This());
         const grid = try GridOfLife.init(alloc, DEFAULT_GRID_WIDTH, DEFAULT_GRID_HEIGHT);
+        const screen_size = platform.getScreenSize().intToFloat(f32);
         self.* = .{
             .alloc = alloc,
             .screen = .{
@@ -40,9 +44,10 @@ pub const Game = struct {
             },
             .paused = true,
             .step_once = false,
-            .grid = grid,
             .start_cell = Vec2i.init(-1, -1),
             .prev_cell = Vec2i.init(-1, -1),
+            .camera_pos = screen_size.scalMul(0.5),
+            .grid = grid,
         };
         self.grid.get_unchecked(2, 0).* = true;
         return self;
@@ -69,10 +74,9 @@ pub const Game = struct {
                 else => {},
             },
             .MouseMotion => |ev| if (self.paused) {
-                setting_cells: {
+                if (ev.buttons & platform.MOUSE_BUTTONS.PRIMARY == platform.MOUSE_BUTTONS.PRIMARY) setting_cells: {
                     const current_cell = self.point_to_cell(ev.pos);
                     if (self.start_cell.eql(current_cell)) break :setting_cells;
-                    if (ev.buttons & platform.MOUSE_BUTTONS.PRIMARY == 0) break :setting_cells;
                     self.fill_line_on_grid(self.prev_cell, current_cell);
                     self.prev_cell = current_cell;
                 }
@@ -81,7 +85,15 @@ pub const Game = struct {
         }
     }
 
-    fn point_to_cell(self: *@This(), pos: Vec2i) Vec2i {
+    fn get_grid_offset(self: *@This()) Vec2f {
+        const grid_size = Vec(2, usize).init(self.grid.width, self.grid.height).mul(Vec(2, usize).init(CELL_WIDTH, CELL_HEIGHT)).intToFloat(f32);
+        const grid_offset = self.camera_pos.sub(grid_size.scalMul(0.5));
+        return grid_offset;
+    }
+
+    fn point_to_cell(self: *@This(), pos_0: Vec2i) Vec2i {
+        const grid_offset = self.get_grid_offset().floatToInt(i32);
+        const pos = pos_0.sub(grid_offset);
         const cell_x = @divFloor(pos.x(), CELL_WIDTH);
         const cell_y = @divFloor(pos.y(), CELL_HEIGHT);
         return Vec2i.init(cell_x, cell_y);
@@ -140,6 +152,8 @@ pub const Game = struct {
         context.renderer.set_fill_style(.{ .Color = .{ .r = 255, .g = 255, .b = 255, .a = 255 } });
         context.renderer.fill_rect(0, 0, screen_size.x(), screen_size.y());
 
+        const grid_offset = self.get_grid_offset();
+
         context.renderer.set_stroke_style(.{ .Color = .{ .r = 0xCC, .g = 0xCC, .b = 0xCC, .a = 255 } });
         context.renderer.set_line_cap(.square);
         context.renderer.set_line_width(1.5);
@@ -147,13 +161,25 @@ pub const Game = struct {
         context.renderer.begin_path();
         var y: isize = 0;
         while (y <= self.grid.height) : (y += 1) {
-            context.renderer.move_to(0, @intToFloat(f32, y) * CELL_HEIGHT);
-            context.renderer.line_to(@intToFloat(f32, self.grid.width) * CELL_WIDTH, @intToFloat(f32, y) * CELL_HEIGHT);
+            context.renderer.move_to(
+                grid_offset.x(),
+                grid_offset.y() + @intToFloat(f32, y) * CELL_HEIGHT,
+            );
+            context.renderer.line_to(
+                grid_offset.x() + @intToFloat(f32, self.grid.width) * CELL_WIDTH,
+                grid_offset.y() + @intToFloat(f32, y) * CELL_HEIGHT,
+            );
         }
         var x: isize = 0;
         while (x <= self.grid.height) : (x += 1) {
-            context.renderer.move_to(@intToFloat(f32, x) * CELL_WIDTH, 0);
-            context.renderer.line_to(@intToFloat(f32, x) * CELL_WIDTH, @intToFloat(f32, self.grid.height) * CELL_HEIGHT);
+            context.renderer.move_to(
+                grid_offset.x() + @intToFloat(f32, x) * CELL_WIDTH,
+                grid_offset.y(),
+            );
+            context.renderer.line_to(
+                grid_offset.x() + @intToFloat(f32, x) * CELL_WIDTH,
+                grid_offset.y() + @intToFloat(f32, self.grid.height) * CELL_HEIGHT,
+            );
         }
         context.renderer.stroke();
 
@@ -164,7 +190,12 @@ pub const Game = struct {
             x = 0;
             while (x < self.grid.width) : (x += 1) {
                 if (self.grid.get_unchecked(x, y).*) {
-                    context.renderer.fill_rect(@intToFloat(f32, x) * CELL_WIDTH, @intToFloat(f32, y) * CELL_HEIGHT, CELL_WIDTH, CELL_HEIGHT);
+                    context.renderer.fill_rect(
+                        grid_offset.x() + @intToFloat(f32, x) * CELL_WIDTH,
+                        grid_offset.y() + @intToFloat(f32, y) * CELL_HEIGHT,
+                        CELL_WIDTH,
+                        CELL_HEIGHT,
+                    );
                 }
             }
         }

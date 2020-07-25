@@ -153,6 +153,17 @@ pub fn Vec(comptime S: usize, comptime T: type) type {
             return .{ .v = res };
         }
 
+        pub fn floatToInt(self: @This(), comptime I: type) Vec(S, I) {
+            var res: [S]I = undefined;
+
+            comptime var i = 0;
+            inline while (i < S) : (i += 1) {
+                res[i] = @floatToInt(I, self.v[i]);
+            }
+
+            return .{ .v = res };
+        }
+
         pub fn floatCast(self: @This(), comptime F: type) Vec(S, F) {
             var res: [S]F = undefined;
 
