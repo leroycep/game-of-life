@@ -28,6 +28,8 @@ pub const Game = struct {
 
     camera_pos: Vec2f,
 
+    ticks_per_step: f32 = 10,
+    ticks_since_last_step: f32 = 0,
     grid: GridOfLife,
 
     pub fn init(alloc: *std.mem.Allocator) !*@This() {
@@ -135,8 +137,12 @@ pub const Game = struct {
         }
 
         if (!self.paused or self.step_once) {
-            self.grid.step();
-            self.step_once = false;
+            if (self.ticks_since_last_step > self.ticks_per_step) {
+                self.grid.step();
+                self.step_once = false;
+                self.ticks_since_last_step = 0;
+            }
+            self.ticks_since_last_step += 1;
         }
 
         return null;
