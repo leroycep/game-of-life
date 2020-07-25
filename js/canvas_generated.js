@@ -1,12 +1,7 @@
 export default function getWebGLEnv(canvas_element, getMemory) {
-    const readCharStr = (ptr, len) => {
-        const bytes = new Uint8Array(getMemory().buffer, ptr, len);
-        let s = "";
-        for (let i = 0; i < len; ++i) {
-            s += String.fromCharCode(bytes[i]);
-        }
-        return s;
-    };
+    const utf8decoder = new TextDecoder();
+    const readCharStr = (ptr, len) =>
+        utf8decoder.decode(new Uint8Array(getMemory().buffer, ptr, len));
     const writeCharStr = (ptr, len, lenRetPtr, text) => {
         const encoder = new TextEncoder();
         const message = encoder.encode(text);
