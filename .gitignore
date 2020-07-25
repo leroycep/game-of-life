@@ -1,2 +1,3 @@
 zig-cache/
-js/webgl.js
+js/canvas_generated.js
+src/platform/web/canvas_generated.zig

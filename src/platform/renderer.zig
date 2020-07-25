@@ -5,6 +5,12 @@ pub const FillStyle = union(enum) {
     Color: platform.Color,
 };
 
+pub const TextAlign = enum(u8) {
+    Left = 0,
+    Right = 1,
+    Center = 2,
+};
+
 pub const Renderer = struct {
     pub fn init() @This() {
         return .{};
@@ -22,8 +28,15 @@ pub const Renderer = struct {
     }
 
     pub fn fill_rect(self: *@This(), x: f32, y: f32, width: f32, height: f32) void {
-        const screen_size = platform.getScreenSize().intToFloat(f32);
         platform.canvas_fillRect(x, y, width, height);
+    }
+
+    pub fn set_text_align(self: *@This(), text_align: TextAlign) void {
+        platform.canvas_setTextAlign(@enumToInt(text_align));
+    }
+
+    pub fn fill_text(self: *@This(), text: []const u8, x: f32, y: f32) void {
+        platform.canvas_fillText(text, x, y);
     }
 
     pub fn flush(self: *@This()) void {}

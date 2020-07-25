@@ -1,4 +1,4 @@
-import getWebGLEnv from "./webgl.js";
+import getWebGLEnv from "./canvas_generated.js";
 import getComponentsEnv from "./component.js";
 
 let canvas = document.getElementById("canvas-webgl");

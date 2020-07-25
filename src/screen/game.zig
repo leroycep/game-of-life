@@ -52,6 +52,7 @@ pub const Game = struct {
     screen: Screen,
 
     quit_pressed: bool = false,
+    paused: bool,
 
     grid: GridOfLife,
 
@@ -66,6 +67,7 @@ pub const Game = struct {
                 .renderFn = render,
                 .deinitFn = deinit,
             },
+            .paused = true,
             .grid = grid,
         };
         self.grid.get_unchecked(2, 0).* = true;
@@ -113,7 +115,7 @@ pub const Game = struct {
 
         context.renderer.begin();
 
-        const screen_size = platform.getScreenSize();
+        const screen_size = platform.getScreenSize().intToFloat(f32);
 
         context.renderer.set_fill_style(.{ .Color = .{ .r = 255, .g = 255, .b = 255, .a = 255 } });
 
@@ -125,6 +127,11 @@ pub const Game = struct {
                     context.renderer.fill_rect(@intToFloat(f32, x) * 16, @intToFloat(f32, y) * 16, 16, 16);
                 }
             }
+        }
+
+        if (self.paused) {
+            context.renderer.set_text_align(.Center);
+            context.renderer.fill_text("Paused", screen_size.x() / 2, screen_size.y() - 30);
         }
     }
 

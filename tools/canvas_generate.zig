@@ -44,6 +44,7 @@ const js_top =
     \\
     \\    const canvas = canvas_element.getContext('2d');
     \\
+    \\    const textAlignMap = ["left", "right", "center"];
 ;
 
 const js_bottom =
@@ -100,6 +101,26 @@ const funcs = [_]Func{
         .ret = "void",
         .js =
             \\canvas.fillStyle = `rgba(${r},${g},${b},${a})`;
+            },
+    Func{
+        .name = "canvas_setTextAlign",
+        .args = &[_]Arg{
+            .{ .name = "text_align", .type = "u8" },
+        },
+        .ret = "void",
+        .js =
+            \\canvas.textAlign = textAlignMap[text_align];
+            },
+    Func{
+        .name = "canvas_fillText",
+        .args = &[_]Arg{
+            .{ .name = "text", .type = "SLICE" },
+            .{ .name = "x", .type = "f32" },
+            .{ .name = "y", .type = "f32" },
+        },
+        .ret = "void",
+        .js =
+            \\canvas.fillText(text, x, y);
             },
 };
 
@@ -224,6 +245,6 @@ fn writeJsFile(filename: []const u8) !void {
 }
 
 pub fn main() !void {
-    try writeZigFile("src/platform/web/webgl_generated.zig");
-    try writeJsFile("js/webgl.js");
+    try writeZigFile("src/platform/web/canvas_generated.zig");
+    try writeJsFile("js/canvas_generated.js");
 }
