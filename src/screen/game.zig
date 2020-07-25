@@ -52,7 +52,7 @@ pub const Game = struct {
                 else => {},
             },
             .MouseButtonDown => |ev| switch (ev.button) {
-                .Left => {
+                .Left => if (self.paused) {
                     if (self.cell_at_point(ev.pos)) |cell| {
                         cell.* = !cell.*;
                     }
