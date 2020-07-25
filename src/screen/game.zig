@@ -21,6 +21,7 @@ pub const Game = struct {
 
     quit_pressed: bool = false,
     paused: bool,
+    step_once: bool,
 
     grid: GridOfLife,
 
@@ -36,6 +37,7 @@ pub const Game = struct {
                 .deinitFn = deinit,
             },
             .paused = true,
+            .step_once = false,
             .grid = grid,
         };
         self.grid.get_unchecked(2, 0).* = true;
@@ -49,6 +51,7 @@ pub const Game = struct {
             .KeyDown => |ev| switch (ev.scancode) {
                 .ESCAPE => self.quit_pressed = true,
                 .SPACE => self.paused = !self.paused,
+                .RIGHT => self.step_once = true,
                 else => {},
             },
             .MouseButtonDown => |ev| switch (ev.button) {
@@ -76,8 +79,9 @@ pub const Game = struct {
             self.quit_pressed = false;
         }
 
-        if (!self.paused) {
+        if (!self.paused or self.step_once) {
             self.grid.step();
+            self.step_once = false;
         }
 
         return null;
@@ -103,10 +107,13 @@ pub const Game = struct {
         }
 
         var buf: [100]u8 = undefined;
-        const text = std.fmt.bufPrint(&buf, "Generation #{}", .{self.grid.generation}) catch return;
 
+        const text = std.fmt.bufPrint(&buf, "Generation #{}", .{self.grid.generation}) catch return;
         context.renderer.set_text_align(.Left);
         context.renderer.fill_text(text, 20, screen_size.y() - 20);
+
+        context.renderer.set_text_align(.Right);
+        context.renderer.fill_text("Press → to advance one step", screen_size.x() - 20, screen_size.y() - 20);
 
         if (self.paused) {
             context.renderer.set_text_align(.Center);
