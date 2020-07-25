@@ -11,6 +11,12 @@ pub const TextAlign = enum(u8) {
     Center = 2,
 };
 
+pub const LineCap = enum(u8) {
+    butt = 0,
+    round = 1,
+    square = 2,
+};
+
 pub const Renderer = struct {
     pub fn init() @This() {
         return .{};
@@ -27,6 +33,12 @@ pub const Renderer = struct {
         }
     }
 
+    pub fn set_stroke_style(self: *@This(), stroke_style: FillStyle) void {
+        switch (stroke_style) {
+            .Color => |color| platform.canvas_setStrokeStyle_rgba(color.r, color.g, color.b, color.a),
+        }
+    }
+
     pub fn fill_rect(self: *@This(), x: f32, y: f32, width: f32, height: f32) void {
         platform.canvas_fillRect(x, y, width, height);
     }
@@ -37,6 +49,34 @@ pub const Renderer = struct {
 
     pub fn fill_text(self: *@This(), text: []const u8, x: f32, y: f32) void {
         platform.canvas_fillText(text, x, y);
+    }
+
+    pub fn move_to(self: *@This(), x: f32, y: f32) void {
+        platform.canvas_moveTo(x, y);
+    }
+
+    pub fn line_to(self: *@This(), x: f32, y: f32) void {
+        platform.canvas_lineTo(x, y);
+    }
+
+    pub fn begin_path(self: *@This()) void {
+        platform.canvas_beginPath();
+    }
+
+    pub fn stroke(self: *@This()) void {
+        platform.canvas_stroke();
+    }
+
+    pub fn set_line_cap(self: *@This(), line_cap: LineCap) void {
+        platform.canvas_setLineCap(@enumToInt(line_cap));
+    }
+
+    pub fn set_line_width(self: *@This(), width: f32) void {
+        platform.canvas_setLineWidth(width);
+    }
+
+    pub fn set_line_dash(self: *@This(), segments: []const i32) void {
+        platform.canvas_setLineDash(segments);
     }
 
     pub fn flush(self: *@This()) void {}

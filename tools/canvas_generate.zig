@@ -21,6 +21,8 @@ const js_top =
     \\    const utf8decoder = new TextDecoder();
     \\    const readCharStr = (ptr, len) =>
     \\        utf8decoder.decode(new Uint8Array(getMemory().buffer, ptr, len));
+    \\    const readI32Array = (ptr, len) =>
+    \\        new Uint32Array(getMemory().buffer, ptr, len);
     \\    const writeCharStr = (ptr, len, lenRetPtr, text) => {
     \\        const encoder = new TextEncoder();
     \\        const message = encoder.encode(text);
@@ -40,6 +42,7 @@ const js_top =
     \\    const canvas = canvas_element.getContext('2d');
     \\
     \\    const textAlignMap = ["left", "right", "center"];
+    \\    const lineCapMap = ["butt", "round", "square"];
 ;
 
 const js_bottom =
@@ -98,6 +101,18 @@ const funcs = [_]Func{
             \\canvas.fillStyle = `rgba(${r},${g},${b},${a})`;
             },
     Func{
+        .name = "canvas_setStrokeStyle_rgba",
+        .args = &[_]Arg{
+            .{ .name = "r", .type = "u8" },
+            .{ .name = "g", .type = "u8" },
+            .{ .name = "b", .type = "u8" },
+            .{ .name = "a", .type = "u8" },
+        },
+        .ret = "void",
+        .js =
+            \\canvas.strokeStyle = `rgba(${r},${g},${b},${a})`;
+            },
+    Func{
         .name = "canvas_setTextAlign",
         .args = &[_]Arg{
             .{ .name = "text_align", .type = "u8" },
@@ -107,15 +122,76 @@ const funcs = [_]Func{
             \\canvas.textAlign = textAlignMap[text_align];
             },
     Func{
+        .name = "canvas_setLineCap",
+        .args = &[_]Arg{
+            .{ .name = "line_cap", .type = "u8" },
+        },
+        .ret = "void",
+        .js =
+            \\canvas.lineCap = lineCapMap[line_cap];
+            },
+    Func{
+        .name = "canvas_setLineWidth",
+        .args = &[_]Arg{
+            .{ .name = "width", .type = "f32" },
+        },
+        .ret = "void",
+        .js =
+            \\canvas.lineWidth = width;
+            },
+    Func{
+        .name = "canvas_setLineDash",
+        .args = &[_]Arg{
+            .{ .name = "segments", .type = "SLICE(i32)" },
+        },
+        .ret = "void",
+        .js =
+            \\canvas.setLineDash(segments);
+            },
+    Func{
         .name = "canvas_fillText",
         .args = &[_]Arg{
-            .{ .name = "text", .type = "SLICE" },
+            .{ .name = "text", .type = "STRING" },
             .{ .name = "x", .type = "f32" },
             .{ .name = "y", .type = "f32" },
         },
         .ret = "void",
         .js =
             \\canvas.fillText(text, x, y);
+            },
+    Func{
+        .name = "canvas_moveTo",
+        .args = &[_]Arg{
+            .{ .name = "x", .type = "f32" },
+            .{ .name = "y", .type = "f32" },
+        },
+        .ret = "void",
+        .js =
+            \\canvas.moveTo(x, y);
+            },
+    Func{
+        .name = "canvas_lineTo",
+        .args = &[_]Arg{
+            .{ .name = "x", .type = "f32" },
+            .{ .name = "y", .type = "f32" },
+        },
+        .ret = "void",
+        .js =
+            \\canvas.lineTo(x, y);
+            },
+    Func{
+        .name = "canvas_beginPath",
+        .args = &[_]Arg{},
+        .ret = "void",
+        .js =
+            \\canvas.beginPath();
+            },
+    Func{
+        .name = "canvas_stroke",
+        .args = &[_]Arg{},
+        .ret = "void",
+        .js =
+            \\canvas.stroke();
             },
 };
 
@@ -138,7 +214,7 @@ fn writeZigFile(filename: []const u8) !void {
 
     for (funcs) |func| {
         const any_slice = for (func.args) |arg| {
-            if (std.mem.eql(u8, arg.type, "SLICE")) {
+            if (std.mem.eql(u8, arg.type, "STRING") or std.mem.eql(u8, arg.type, "SLICE(i32)")) {
                 break true;
             }
         } else false;
@@ -151,8 +227,10 @@ fn writeZigFile(filename: []const u8) !void {
             if (i > 0) {
                 try stream.print(", ", .{});
             }
-            if (std.mem.eql(u8, arg.type, "SLICE")) {
+            if (std.mem.eql(u8, arg.type, "STRING")) {
                 try stream.print("{}_ptr: [*]const u8, {}_len: c_uint", .{ arg.name, arg.name });
+            } else if (std.mem.eql(u8, arg.type, "SLICE(i32)")) {
+                try stream.print("{}_ptr: [*]const i32, {}_len: c_uint", .{ arg.name, arg.name });
             } else {
                 try stream.print("{}: {}", .{ arg.name, arg.type });
             }
@@ -165,8 +243,10 @@ fn writeZigFile(filename: []const u8) !void {
                 if (i > 0) {
                     try stream.print(", ", .{});
                 }
-                if (std.mem.eql(u8, arg.type, "SLICE")) {
+                if (std.mem.eql(u8, arg.type, "STRING")) {
                     try stream.print("{}: []const u8", .{arg.name});
+                } else if (std.mem.eql(u8, arg.type, "SLICE(i32)")) {
+                    try stream.print("{}: []const i32", .{arg.name});
                 } else {
                     try stream.print("{}: {}", .{ arg.name, arg.type });
                 }
@@ -179,7 +259,7 @@ fn writeZigFile(filename: []const u8) !void {
                 if (i > 0) {
                     try stream.print(", ", .{});
                 }
-                if (std.mem.eql(u8, arg.type, "SLICE")) {
+                if (std.mem.eql(u8, arg.type, "STRING") or std.mem.eql(u8, arg.type, "SLICE(i32)")) {
                     try stream.print("{}.ptr, {}.len", .{ arg.name, arg.name });
                 } else {
                     try stream.print("{}", .{arg.name});
@@ -202,7 +282,7 @@ fn writeJsFile(filename: []const u8) !void {
     try stream.print("    return {{\n", .{});
     for (funcs) |func| {
         const any_slice = for (func.args) |arg| {
-            if (std.mem.eql(u8, arg.type, "SLICE")) {
+            if (std.mem.eql(u8, arg.type, "STRING") or std.mem.eql(u8, arg.type, "SLICE(i32)")) {
                 break true;
             }
         } else false;
@@ -214,7 +294,7 @@ fn writeJsFile(filename: []const u8) !void {
             if (i > 0) {
                 try stream.print(", ", .{});
             }
-            if (std.mem.eql(u8, arg.type, "SLICE")) {
+            if (std.mem.eql(u8, arg.type, "STRING") or std.mem.eql(u8, arg.type, "SLICE(i32)")) {
                 try stream.print("{}_ptr, {}_len", .{ arg.name, arg.name });
             } else {
                 try stream.print("{}", .{arg.name});
@@ -222,8 +302,10 @@ fn writeJsFile(filename: []const u8) !void {
         }
         try stream.print(") {{\n", .{});
         for (func.args) |arg| {
-            if (std.mem.eql(u8, arg.type, "SLICE")) {
+            if (std.mem.eql(u8, arg.type, "STRING")) {
                 try stream.print("            const {} = readCharStr({}_ptr, {}_len);\n", .{ arg.name, arg.name, arg.name });
+            } else if (std.mem.eql(u8, arg.type, "SLICE(i32)")) {
+                try stream.print("            const {} = readI32Array({}_ptr, {}_len);\n", .{ arg.name, arg.name, arg.name });
             }
         }
         var start: usize = 0;

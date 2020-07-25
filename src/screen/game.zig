@@ -94,17 +94,34 @@ pub const Game = struct {
 
         const screen_size = platform.getScreenSize().intToFloat(f32);
 
-        context.renderer.set_fill_style(.{ .Color = .{ .r = 0, .g = 0, .b = 0, .a = 255 } });
+        context.renderer.set_fill_style(.{ .Color = .{ .r = 255, .g = 255, .b = 255, .a = 255 } });
         context.renderer.fill_rect(0, 0, screen_size.x(), screen_size.y());
 
-        context.renderer.set_fill_style(.{ .Color = .{ .r = 255, .g = 255, .b = 255, .a = 255 } });
-
+        context.renderer.set_stroke_style(.{ .Color = .{ .r = 0xCC, .g = 0xCC, .b = 0xCC, .a = 255 } });
+        context.renderer.begin_path();
+        context.renderer.set_line_cap(.square);
+        context.renderer.set_line_width(1.5);
+        context.renderer.set_line_dash(&[_]i32{4, 8, 4, 0});
         var y: usize = 0;
+        while (y <= self.grid.height) : (y += 1) {
+            context.renderer.move_to(0, @intToFloat(f32, y) * CELL_HEIGHT);
+            context.renderer.line_to(@intToFloat(f32, self.grid.width) * CELL_WIDTH, @intToFloat(f32, y) * CELL_HEIGHT);
+        }
+        var x: usize = 0;
+        while (x <= self.grid.height) : (x += 1) {
+            context.renderer.move_to(@intToFloat(f32, x) * CELL_WIDTH, 0);
+            context.renderer.line_to(@intToFloat(f32, x) * CELL_WIDTH, @intToFloat(f32, self.grid.height) * CELL_HEIGHT);
+        }
+        context.renderer.stroke();
+
+        context.renderer.set_fill_style(.{ .Color = .{ .r = 100, .g = 100, .b = 100, .a = 255 } });
+
+        y = 0;
         while (y < self.grid.height) : (y += 1) {
-            var x: usize = 0;
+            x = 0;
             while (x < self.grid.width) : (x += 1) {
                 if (self.grid.get_unchecked(x, y).*) {
-                    context.renderer.fill_rect(@intToFloat(f32, x) * 16, @intToFloat(f32, y) * 16, 16, 16);
+                    context.renderer.fill_rect(@intToFloat(f32, x) * CELL_WIDTH, @intToFloat(f32, y) * CELL_HEIGHT, CELL_WIDTH, CELL_HEIGHT);
                 }
             }
         }
