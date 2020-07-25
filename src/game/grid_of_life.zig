@@ -5,6 +5,7 @@ pub const GridOfLife = struct {
     height: usize,
     cells: []bool,
     cells_next: []bool,
+    generation: usize,
 
     pub fn init(alloc: *std.mem.Allocator, width: usize, height: usize) !@This() {
         var self = @This(){
@@ -12,6 +13,7 @@ pub const GridOfLife = struct {
             .height = height,
             .cells = try alloc.alloc(bool, width * height),
             .cells_next = try alloc.alloc(bool, width * height),
+            .generation = 0,
         };
         std.mem.set(bool, self.cells, false);
         std.mem.set(bool, self.cells_next, false);
@@ -82,6 +84,7 @@ pub const GridOfLife = struct {
         const tmp = self.cells;
         self.cells = self.cells_next;
         self.cells_next = tmp;
+        self.generation += 1;
     }
 };
 

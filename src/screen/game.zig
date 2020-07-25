@@ -10,8 +10,8 @@ const Renderer = platform.Renderer;
 const game = @import("../game.zig");
 const GridOfLife = game.GridOfLife;
 
-const DEFAULT_GRID_WIDTH = 15;
-const DEFAULT_GRID_HEIGHT = 15;
+const DEFAULT_GRID_WIDTH = 25;
+const DEFAULT_GRID_HEIGHT = 25;
 const CELL_WIDTH = 16;
 const CELL_HEIGHT = 16;
 
@@ -102,9 +102,16 @@ pub const Game = struct {
             }
         }
 
+        var buf: [100]u8 = undefined;
+        const text = std.fmt.bufPrint(&buf, "Generation #{}", .{self.grid.generation}) catch return;
+
+        context.renderer.set_text_align(.Left);
+        context.renderer.fill_text(text, 20, screen_size.y() - 20);
+
         if (self.paused) {
             context.renderer.set_text_align(.Center);
             context.renderer.fill_text("Paused", screen_size.x() / 2, screen_size.y() - 30);
+            context.renderer.fill_text("(Press Space to Resume)", screen_size.x() / 2, screen_size.y() - 15);
         }
     }
 
@@ -114,4 +121,3 @@ pub const Game = struct {
         self.alloc.destroy(self);
     }
 };
-
