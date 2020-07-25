@@ -94,6 +94,9 @@ pub const Game = struct {
 
         const screen_size = platform.getScreenSize().intToFloat(f32);
 
+        context.renderer.set_fill_style(.{ .Color = .{ .r = 0, .g = 0, .b = 0, .a = 255 } });
+        context.renderer.fill_rect(0, 0, screen_size.x(), screen_size.y());
+
         context.renderer.set_fill_style(.{ .Color = .{ .r = 255, .g = 255, .b = 255, .a = 255 } });
 
         var y: usize = 0;
