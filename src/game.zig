@@ -1,4 +1,2 @@
-const snake = @import("game/snake.zig");
-pub const Snake = snake.Snake;
-pub const Segment = snake.Segment;
-pub const PastPosition = snake.PastPosition;
+const grid_of_life = @import("game/grid_of_life.zig");
+pub const GridOfLife = grid_of_life.GridOfLife;

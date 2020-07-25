@@ -55,5 +55,5 @@ pub fn render(context: *platform.Context, alpha: f64) void {
 }
 
 test "" {
-    std.meta.refAllDecls(@import("array_deque.zig"));
+    std.meta.refAllDecls(@import("game/grid_of_life.zig"));
 }

@@ -8,44 +8,12 @@ const Vec2i = @import("../utils.zig").Vec2i;
 const Context = platform.Context;
 const Renderer = platform.Renderer;
 const game = @import("../game.zig");
+const GridOfLife = game.GridOfLife;
 
 const DEFAULT_GRID_WIDTH = 15;
 const DEFAULT_GRID_HEIGHT = 15;
 const CELL_WIDTH = 16;
 const CELL_HEIGHT = 16;
-
-const GridOfLife = struct {
-    width: usize,
-    height: usize,
-    cells: []bool,
-
-    pub fn init(alloc: *std.mem.Allocator, width: usize, height: usize) !@This() {
-        return @This(){
-            .width = width,
-            .height = height,
-            .cells = try alloc.alloc(bool, width * height),
-        };
-    }
-
-    pub fn deinit(self: @This(), alloc: *std.mem.Allocator) void {
-        alloc.free(self.cells);
-    }
-
-    pub fn get(self: @This(), x: usize, y: usize) ?*bool {
-        const i = self.idx(x, y) orelse return null;
-        return &self.cells[i];
-    }
-
-    pub fn get_unchecked(self: @This(), x: usize, y: usize) *bool {
-        const i = self.idx(x, y) orelse unreachable;
-        return &self.cells[i];
-    }
-
-    pub fn idx(self: @This(), x: usize, y: usize) ?usize {
-        if (x >= self.width or y >= self.height) return null;
-        return y * self.height + x;
-    }
-};
 
 pub const Game = struct {
     alloc: *std.mem.Allocator,
@@ -108,6 +76,10 @@ pub const Game = struct {
             self.quit_pressed = false;
         }
 
+        if (!self.paused) {
+            self.grid.step();
+        }
+
         return null;
     }
 
@@ -142,3 +114,4 @@ pub const Game = struct {
         self.alloc.destroy(self);
     }
 };
+
