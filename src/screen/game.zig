@@ -42,6 +42,7 @@ pub const Game = struct {
             .step_once = false,
             .grid = grid,
             .start_cell = Vec2i.init(-1, -1),
+            .prev_cell = Vec2i.init(-1, -1),
         };
         self.grid.get_unchecked(2, 0).* = true;
         return self;
@@ -72,9 +73,7 @@ pub const Game = struct {
                     const current_cell = self.point_to_cell(ev.pos);
                     if (self.start_cell.eql(current_cell)) break :setting_cells;
                     if (ev.buttons & platform.MOUSE_BUTTONS.PRIMARY == 0) break :setting_cells;
-                    if (self.grid.get(current_cell.x(), current_cell.y())) |cell| {
-                        cell.* = true;
-                    }
+                    self.fill_line_on_grid(self.prev_cell, current_cell);
                     self.prev_cell = current_cell;
                 }
             },
@@ -82,16 +81,38 @@ pub const Game = struct {
         }
     }
 
-    fn cell_at_point(self: *@This(), pos: Vec2i) ?*bool {
-        const cell_x = @divFloor(pos.x(), CELL_WIDTH);
-        const cell_y = @divFloor(pos.y(), CELL_HEIGHT);
-        return self.grid.get(cell_x, cell_y);
-    }
-
     fn point_to_cell(self: *@This(), pos: Vec2i) Vec2i {
         const cell_x = @divFloor(pos.x(), CELL_WIDTH);
         const cell_y = @divFloor(pos.y(), CELL_HEIGHT);
         return Vec2i.init(cell_x, cell_y);
+    }
+
+    fn fill_line_on_grid(self: *@This(), pos0: Vec2i, pos1: Vec2i) void {
+        var p = pos0;
+        var d = pos1.sub(pos0);
+        d.v[0] = std.math.absInt(d.v[0]) catch return;
+        d.v[1] = -(std.math.absInt(d.v[1]) catch return);
+
+        const signs = Vec2i.init(
+            if (pos0.x() < pos1.x()) 1 else -1,
+            if (pos0.y() < pos1.y()) 1 else -1,
+        );
+        var err = d.x() + d.y();
+        while (true) {
+            if (self.grid.get(p.x(), p.y())) |cell| {
+                cell.* = true;
+            }
+            if (p.eql(pos1)) break;
+            const e2 = 2 * err;
+            if (e2 >= d.y()) {
+                err += d.y();
+                p.v[0] += signs.x();
+            }
+            if (e2 <= d.y()) {
+                err += d.x();
+                p.v[1] += signs.y();
+            }
+        }
     }
 
     pub fn update(screenPtr: *Screen, context: *Context, time: f64, delta: f64) ?screen.Transition {
