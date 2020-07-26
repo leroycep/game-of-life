@@ -102,6 +102,17 @@ pub fn Vec(comptime S: usize, comptime T: type) type {
             return res;
         }
 
+        pub fn scalDiv(self: @This(), scal: T) @This() {
+            var res: @This() = undefined;
+
+            comptime var i = 0;
+            inline while (i < S) : (i += 1) {
+                res.v[i] = self.v[i] / scal;
+            }
+
+            return res;
+        }
+
         pub fn normalize(self: @This()) @This() {
             const mag = self.magnitude();
             var res: @This() = undefined;
