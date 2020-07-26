@@ -15,6 +15,8 @@ const DEFAULT_GRID_WIDTH = 25;
 const DEFAULT_GRID_HEIGHT = 25;
 const CELL_WIDTH = 16;
 const CELL_HEIGHT = 16;
+const MIN_SCALE = 8;
+const MAX_SCALE = 1024;
 
 pub const Game = struct {
     alloc: *std.mem.Allocator,
@@ -29,6 +31,7 @@ pub const Game = struct {
     start_pan: ?Vec2i = null,
     start_pan_camera_pos: ?Vec2f = null,
     camera_pos: Vec2f = Vec2f.init(0, 0),
+    scale: f32 = 16.0,
 
     ticks_per_step: f32 = 10,
     ticks_since_last_step: f32 = 0,
@@ -112,7 +115,8 @@ pub const Game = struct {
                 }
             },
             .MouseWheel => |delta| {
-                platform.warn("Wheee!", .{});
+                const deltaY = @intToFloat(f32, delta.y()) * -1;
+                self.scale = std.math.clamp(self.scale + deltaY, MIN_SCALE, MAX_SCALE);
             },
             .ScreenResized => |size| {
                 self.camera_pos = size.intToFloat(f32).scalMul(-0.5);
@@ -123,8 +127,8 @@ pub const Game = struct {
 
     fn point_to_cell(self: *@This(), pos_0: Vec2i) Vec2i {
         const pos = pos_0.add(self.camera_pos.floatToInt(i32));
-        const cell_x = @divFloor(pos.x(), CELL_WIDTH);
-        const cell_y = @divFloor(pos.y(), CELL_HEIGHT);
+        const cell_x = @divFloor(pos.x(), @floatToInt(i32, self.scale));
+        const cell_y = @divFloor(pos.y(), @floatToInt(i32, self.scale));
         return Vec2i.init(cell_x, cell_y);
     }
 
@@ -190,28 +194,31 @@ pub const Game = struct {
         context.renderer.set_stroke_style(.{ .Color = .{ .r = 0xCC, .g = 0xCC, .b = 0xCC, .a = 255 } });
         context.renderer.set_line_cap(.square);
         context.renderer.set_line_width(1.5);
-        context.renderer.set_line_dash(&[_]f32{ 4, 8, 4, 0 });
+
+        const quarter = self.scale / 4;
+        context.renderer.set_line_dash(&[_]f32{ quarter, 2 * quarter, quarter, 0 });
+
         context.renderer.begin_path();
         var y: isize = 0;
         while (y <= self.grid.height) : (y += 1) {
             context.renderer.move_to(
                 grid_offset.x(),
-                grid_offset.y() + @intToFloat(f32, y) * CELL_HEIGHT,
+                grid_offset.y() + @intToFloat(f32, y) * self.scale,
             );
             context.renderer.line_to(
-                grid_offset.x() + @intToFloat(f32, self.grid.width) * CELL_WIDTH,
-                grid_offset.y() + @intToFloat(f32, y) * CELL_HEIGHT,
+                grid_offset.x() + @intToFloat(f32, self.grid.width) * self.scale,
+                grid_offset.y() + @intToFloat(f32, y) * self.scale,
             );
         }
         var x: isize = 0;
         while (x <= self.grid.height) : (x += 1) {
             context.renderer.move_to(
-                grid_offset.x() + @intToFloat(f32, x) * CELL_WIDTH,
+                grid_offset.x() + @intToFloat(f32, x) * self.scale,
                 grid_offset.y(),
             );
             context.renderer.line_to(
-                grid_offset.x() + @intToFloat(f32, x) * CELL_WIDTH,
-                grid_offset.y() + @intToFloat(f32, self.grid.height) * CELL_HEIGHT,
+                grid_offset.x() + @intToFloat(f32, x) * self.scale,
+                grid_offset.y() + @intToFloat(f32, self.grid.height) * self.scale,
             );
         }
         context.renderer.stroke();
@@ -224,10 +231,10 @@ pub const Game = struct {
             while (x < self.grid.width) : (x += 1) {
                 if (self.grid.get_unchecked(x, y).*) {
                     context.renderer.fill_rect(
-                        grid_offset.x() + @intToFloat(f32, x) * CELL_WIDTH,
-                        grid_offset.y() + @intToFloat(f32, y) * CELL_HEIGHT,
-                        CELL_WIDTH,
-                        CELL_HEIGHT,
+                        grid_offset.x() + @intToFloat(f32, x) * self.scale,
+                        grid_offset.y() + @intToFloat(f32, y) * self.scale,
+                        self.scale,
+                        self.scale,
                     );
                 }
             }
