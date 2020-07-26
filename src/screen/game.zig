@@ -31,6 +31,7 @@ pub const Game = struct {
     start_pan: ?Vec2i = null,
     start_pan_camera_pos: ?Vec2f = null,
     camera_pos: Vec2f = Vec2f.init(0, 0),
+    cursor_pos: Vec2f = Vec2f.init(0, 0),
     scale: f32 = 16.0,
 
     ticks_per_step: f32 = 10,
@@ -113,10 +114,17 @@ pub const Game = struct {
                     const start_camera_pos = self.start_pan_camera_pos orelse break :panning;
                     self.camera_pos = start_pan.sub(ev.pos).intToFloat(f32).add(start_camera_pos);
                 }
+                self.cursor_pos = ev.pos.intToFloat(f32);
             },
             .MouseWheel => |delta| {
+                // Save the position of the cursor in the world
+                const cursor_world_pos = self.cursor_pos.add(self.camera_pos).scalDiv(self.scale);
+
                 const deltaY = @intToFloat(f32, delta.y()) * -1;
                 self.scale = std.math.clamp(self.scale + deltaY, MIN_SCALE, MAX_SCALE);
+
+                // Set the camera position so that the cursor stays in the same spot in the world
+                self.camera_pos = cursor_world_pos.scalMul(self.scale).sub(self.cursor_pos);
             },
             .ScreenResized => |size| {
                 self.camera_pos = size.intToFloat(f32).scalMul(-0.5);
