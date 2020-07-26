@@ -21,8 +21,8 @@ const js_top =
     \\    const utf8decoder = new TextDecoder();
     \\    const readCharStr = (ptr, len) =>
     \\        utf8decoder.decode(new Uint8Array(getMemory().buffer, ptr, len));
-    \\    const readI32Array = (ptr, len) =>
-    \\        new Uint32Array(getMemory().buffer, ptr, len);
+    \\    const readF32Array = (ptr, len) =>
+    \\        new Float32Array(getMemory().buffer, ptr, len);
     \\    const writeCharStr = (ptr, len, lenRetPtr, text) => {
     \\        const encoder = new TextEncoder();
     \\        const message = encoder.encode(text);
@@ -305,7 +305,7 @@ fn writeJsFile(filename: []const u8) !void {
             if (std.mem.eql(u8, arg.type, "STRING")) {
                 try stream.print("            const {} = readCharStr({}_ptr, {}_len);\n", .{ arg.name, arg.name, arg.name });
             } else if (std.mem.eql(u8, arg.type, "SLICE(f32)")) {
-                try stream.print("            const {} = readI32Array({}_ptr, {}_len);\n", .{ arg.name, arg.name, arg.name });
+                try stream.print("            const {} = readF32Array({}_ptr, {}_len);\n", .{ arg.name, arg.name, arg.name });
             }
         }
         var start: usize = 0;
