@@ -43,6 +43,7 @@ const js_top =
     \\
     \\    const textAlignMap = ["left", "right", "center"];
     \\    const lineCapMap = ["butt", "round", "square"];
+    \\    const cursorStyleMap = ["default", "move", "grabbing"];
 ;
 
 const js_bottom =
@@ -63,6 +64,15 @@ const funcs = [_]Func{
         .ret = "i32",
         .js =
             \\return canvas_element.getBoundingClientRect().height;
+            },
+    Func{
+        .name = "canvas_setCursorStyle",
+        .args = &[_]Arg{
+            .{ .name = "style", .type = "u32" },
+        },
+        .ret = "void",
+        .js =
+            \\canvas_element.style.cursor = cursorStyleMap[style];
             },
     Func{
         .name = "canvas_clearRect",

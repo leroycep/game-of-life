@@ -40,4 +40,12 @@ pub const Context = struct {
     pub fn getScreenSize(self: @This()) Vec2i {
         return webGetScreenSize();
     }
+
+    pub fn set_cursor(self: @This(), cursor_style: common.CursorStyle) void {
+        canvas_setCursorStyle(switch (cursor_style) {
+            .default => 0,
+            .move => 1,
+            .grabbing => 2,
+        });
+    }
 };

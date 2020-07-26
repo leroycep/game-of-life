@@ -330,3 +330,9 @@ pub const Scancode = enum(u16) {
     APP1,
     APP2,
 };
+
+pub const CursorStyle = enum {
+    default,
+    move,
+    grabbing,
+};

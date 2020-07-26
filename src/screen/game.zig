@@ -86,6 +86,7 @@ pub const Game = struct {
                 .Middle => {
                     self.start_pan = ev.pos;
                     self.start_pan_camera_pos = self.camera_pos;
+                    context.set_cursor(.grabbing);
                 },
                 else => {},
             },
@@ -93,6 +94,7 @@ pub const Game = struct {
                 .Middle => {
                     self.start_pan = null;
                     self.start_pan_camera_pos = null;
+                    context.set_cursor(.default);
                 },
                 else => {},
             },
