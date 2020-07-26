@@ -11,15 +11,15 @@ body {
 }
 
 #container {
-    width: 640px;
-    height: 480px;
+    min-width: 640px;
+    min-height: 480px;
     position: relative;
 }
 
 #canvas-webgl, #components-root {
     position: absolute;
-    width: 640px;
-    height: 480px;
+    width: 100%;
+    height: 100%;
 }
 
 #components-root {

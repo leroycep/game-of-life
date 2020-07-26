@@ -2,8 +2,8 @@ export default function getWebGLEnv(canvas_element, getMemory) {
     const utf8decoder = new TextDecoder();
     const readCharStr = (ptr, len) =>
         utf8decoder.decode(new Uint8Array(getMemory().buffer, ptr, len));
-    const readI32Array = (ptr, len) =>
-        new Uint32Array(getMemory().buffer, ptr, len);
+    const readF32Array = (ptr, len) =>
+        new Float32Array(getMemory().buffer, ptr, len);
     const writeCharStr = (ptr, len, lenRetPtr, text) => {
         const encoder = new TextEncoder();
         const message = encoder.encode(text);
@@ -24,12 +24,16 @@ export default function getWebGLEnv(canvas_element, getMemory) {
 
     const textAlignMap = ["left", "right", "center"];
     const lineCapMap = ["butt", "round", "square"];
+    const cursorStyleMap = ["default", "move", "grabbing"];
     return {
         getScreenW() {
             return canvas_element.getBoundingClientRect().width;
         },
         getScreenH() {
             return canvas_element.getBoundingClientRect().height;
+        },
+        canvas_setCursorStyle(style) {
+            canvas_element.style.cursor = cursorStyleMap[style];
         },
         canvas_clearRect(x, y, width, height) {
             canvas.clearRect(x,y,width,height);
@@ -53,7 +57,7 @@ export default function getWebGLEnv(canvas_element, getMemory) {
             canvas.lineWidth = width;
         },
         canvas_setLineDash_(segments_ptr, segments_len) {
-            const segments = readI32Array(segments_ptr, segments_len);
+            const segments = readF32Array(segments_ptr, segments_len);
             canvas.setLineDash(segments);
         },
         canvas_fillText_(text_ptr, text_len, x, y) {

@@ -1,6 +1,7 @@
 import getWebGLEnv from "./canvas_generated.js";
 import getComponentsEnv from "./component.js";
 
+let container = document.getElementById("container");
 let canvas = document.getElementById("canvas-webgl");
 let componentsRoot = document.getElementById("components-root");
 var memory;
@@ -25,7 +26,7 @@ let env = {
   now_f64: ptr => Date.now()
 };
 
-fetch("snake-game.wasm")
+fetch("game-of-life-web.wasm")
   .then(response => response.arrayBuffer())
   .then(bytes => WebAssembly.instantiate(bytes, { env }))
   .then(results => results.instance)
@@ -118,6 +119,11 @@ fetch("snake-game.wasm")
       }
     });
 
+    canvas.addEventListener("wheel", (ev) => {
+      ev.preventDefault();
+      instance.exports.onMouseWheel(ev.deltaX, ev.deltaY);
+    });
+
     const codeMap = {
       KeyW: ex.SCANCODE_W,
       KeyA: ex.SCANCODE_A,
@@ -159,4 +165,17 @@ fetch("snake-game.wasm")
     onResize();
     window.addEventListener("resize", onResize);
     new ResizeObserver(onResize).observe(document.body);
+
+    window.addEventListener("fullscreenchange", (event) => {
+        const rect = container.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+    });
   });
+
+function goFullscreen() {
+  if (container.requestFullscreen) {
+    container.requestFullscreen();
+  }
+}
+document.getElementById("fullscreen-button").addEventListener("click", goFullscreen);
