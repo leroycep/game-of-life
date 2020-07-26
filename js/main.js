@@ -1,6 +1,7 @@
 import getWebGLEnv from "./canvas_generated.js";
 import getComponentsEnv from "./component.js";
 
+let container = document.getElementById("container");
 let canvas = document.getElementById("canvas-webgl");
 let componentsRoot = document.getElementById("components-root");
 var memory;
@@ -159,4 +160,17 @@ fetch("game-of-life-web.wasm")
     onResize();
     window.addEventListener("resize", onResize);
     new ResizeObserver(onResize).observe(document.body);
+
+    window.addEventListener("fullscreenchange", (event) => {
+        const rect = container.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+    });
   });
+
+function goFullscreen() {
+  if (container.requestFullscreen) {
+    container.requestFullscreen();
+  }
+}
+document.getElementById("fullscreen-button").addEventListener("click", goFullscreen);
