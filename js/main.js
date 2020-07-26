@@ -119,6 +119,11 @@ fetch("game-of-life-web.wasm")
       }
     });
 
+    canvas.addEventListener("wheel", (ev) => {
+      ev.preventDefault();
+      instance.exports.onMouseWheel(ev.deltaX, ev.deltaY);
+    });
+
     const codeMap = {
       KeyW: ex.SCANCODE_W,
       KeyA: ex.SCANCODE_A,

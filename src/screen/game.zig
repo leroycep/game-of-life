@@ -111,6 +111,9 @@ pub const Game = struct {
                     self.camera_pos = start_pan.sub(ev.pos).intToFloat(f32).add(start_camera_pos);
                 }
             },
+            .MouseWheel => |delta| {
+                platform.warn("Wheee!", .{});
+            },
             .ScreenResized => |size| {
                 self.camera_pos = size.intToFloat(f32).scalMul(-0.5);
             },

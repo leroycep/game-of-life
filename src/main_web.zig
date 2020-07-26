@@ -54,6 +54,12 @@ export fn onMouseButton(x: i32, y: i32, down: i32, button_int: u8) void {
     }
 }
 
+export fn onMouseWheel(x: i32, y: i32) void {
+    app.onEvent(&context, .{
+        .MouseWheel = Vec2i.init(x, y),
+    });
+}
+
 export fn onKeyDown(scancode: u16) void {
     app.onEvent(&context, .{
         .KeyDown = .{
