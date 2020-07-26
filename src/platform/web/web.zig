@@ -26,11 +26,11 @@ pub fn warn(comptime fmt: []const u8, args: anytype) void {
     var buf: [1000]u8 = undefined;
     const text = std.fmt.bufPrint(buf[0..], fmt, args) catch {
         const message = "warn: bufPrint failed. too long? format string:";
-        web.consoleLogS(message, message.len);
-        web.consoleLogS(fmt.ptr, fmt.len);
+        consoleLogS(message, message.len);
+        consoleLogS(fmt.ptr, fmt.len);
         return;
     };
-    web.consoleLogS(text.ptr, text.len);
+    consoleLogS(text.ptr, text.len);
 }
 
 pub const Context = struct {

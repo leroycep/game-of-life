@@ -55,6 +55,16 @@ pub const MouseButton = enum(u8) {
     Right,
     X1,
     X2,
+
+    pub fn to_buttons_number(self: @This()) u32 {
+        return switch (self) {
+            .Left => MOUSE_BUTTONS.PRIMARY,
+            .Middle => MOUSE_BUTTONS.AUXILIARY,
+            .Right => MOUSE_BUTTONS.SECONDARY,
+            .X1 => MOUSE_BUTTONS.X1,
+            .X2 => MOUSE_BUTTONS.X2,
+        };
+    }
 };
 
 pub const MOUSE_BUTTONS = struct {
@@ -65,7 +75,16 @@ pub const MOUSE_BUTTONS = struct {
     pub const X2 = 0x10;
 };
 
-pub const MouseMoveEvent = struct { pos: Vec2i, buttons: u32 };
+pub const MouseMoveEvent = struct {
+    pos: Vec2i,
+    buttons: u32,
+
+    pub fn is_pressed(self: @This(), button: MouseButton) bool {
+        const flag = button.to_buttons_number();
+        return self.buttons & flag == flag;
+    }
+};
+
 pub const MouseButtonEvent = struct { pos: Vec2i, button: MouseButton };
 
 pub const Scancode = enum(u16) {

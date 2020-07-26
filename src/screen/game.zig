@@ -26,6 +26,8 @@ pub const Game = struct {
     start_cell: Vec2i,
     prev_cell: Vec2i,
 
+    start_pan: ?Vec2i = null,
+    start_pan_camera_pos: ?Vec2f = null,
     camera_pos: Vec2f = Vec2f.init(0, 0),
 
     ticks_per_step: f32 = 10,
@@ -56,8 +58,6 @@ pub const Game = struct {
 
     pub fn start(screenPtr: *Screen, context: *Context) void {
         const self = @fieldParentPtr(@This(), "screen", screenPtr);
-        const screen_size = context.getScreenSize().intToFloat(f32);
-        self.camera_pos = screen_size.scalMul(0.5);
     }
 
     pub fn onEvent(screenPtr: *Screen, context: *Context, event: platform.Event) void {
@@ -83,29 +83,41 @@ pub const Game = struct {
                         cell.* = !cell.*;
                     }
                 },
+                .Middle => {
+                    self.start_pan = ev.pos;
+                    self.start_pan_camera_pos = self.camera_pos;
+                },
                 else => {},
             },
-            .MouseMotion => |ev| if (self.paused) {
-                if (ev.buttons & platform.MOUSE_BUTTONS.PRIMARY == platform.MOUSE_BUTTONS.PRIMARY) setting_cells: {
+            .MouseButtonUp => |ev| switch (ev.button) {
+                .Middle => {
+                    self.start_pan = null;
+                    self.start_pan_camera_pos = null;
+                },
+                else => {},
+            },
+            .MouseMotion => |ev| {
+                if (self.paused and ev.is_pressed(.Left)) setting_cells: {
                     const current_cell = self.point_to_cell(ev.pos);
                     if (self.start_cell.eql(current_cell)) break :setting_cells;
                     self.fill_line_on_grid(self.prev_cell, current_cell);
                     self.prev_cell = current_cell;
                 }
+                if (ev.is_pressed(.Middle)) panning: {
+                    const start_pan = self.start_pan orelse break :panning;
+                    const start_camera_pos = self.start_pan_camera_pos orelse break :panning;
+                    self.camera_pos = start_pan.sub(ev.pos).intToFloat(f32).add(start_camera_pos);
+                }
+            },
+            .ScreenResized => |size| {
+                self.camera_pos = size.intToFloat(f32).scalMul(-0.5);
             },
             else => {},
         }
     }
 
-    fn get_grid_offset(self: *@This()) Vec2f {
-        const grid_size = Vec(2, usize).init(self.grid.width, self.grid.height).mul(Vec(2, usize).init(CELL_WIDTH, CELL_HEIGHT)).intToFloat(f32);
-        const grid_offset = self.camera_pos.sub(grid_size.scalMul(0.5));
-        return grid_offset;
-    }
-
     fn point_to_cell(self: *@This(), pos_0: Vec2i) Vec2i {
-        const grid_offset = self.get_grid_offset().floatToInt(i32);
-        const pos = pos_0.sub(grid_offset);
+        const pos = pos_0.add(self.camera_pos.floatToInt(i32));
         const cell_x = @divFloor(pos.x(), CELL_WIDTH);
         const cell_y = @divFloor(pos.y(), CELL_HEIGHT);
         return Vec2i.init(cell_x, cell_y);
@@ -168,7 +180,7 @@ pub const Game = struct {
         context.renderer.set_fill_style(.{ .Color = .{ .r = 255, .g = 255, .b = 255, .a = 255 } });
         context.renderer.fill_rect(0, 0, screen_size.x(), screen_size.y());
 
-        const grid_offset = self.get_grid_offset();
+        const grid_offset = self.camera_pos.scalMul(-1);
 
         context.renderer.set_stroke_style(.{ .Color = .{ .r = 0xCC, .g = 0xCC, .b = 0xCC, .a = 255 } });
         context.renderer.set_line_cap(.square);
@@ -225,7 +237,7 @@ pub const Game = struct {
         }
 
         {
-            const text = std.fmt.bufPrint(&buf, "Ticks Per Step: {d}, Ticks: {d}", .{self.ticks_per_step, self.ticks_since_last_step}) catch return;
+            const text = std.fmt.bufPrint(&buf, "Ticks Per Step: {d}, Ticks: {d}", .{ self.ticks_per_step, self.ticks_since_last_step }) catch return;
             context.renderer.set_text_align(.Left);
             context.renderer.fill_text(text, 20, screen_size.y() - 40);
         }
