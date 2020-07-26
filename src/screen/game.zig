@@ -171,12 +171,12 @@ pub const Game = struct {
         const grid_offset = self.get_grid_offset();
 
         context.renderer.set_stroke_style(.{ .Color = .{ .r = 0xCC, .g = 0xCC, .b = 0xCC, .a = 255 } });
-        context.renderer.set_line_cap(.square);
+        //context.renderer.set_line_cap(.square);
         context.renderer.set_line_width(1.5);
         context.renderer.set_line_dash(&[_]f32{ 4, 8, 4, 0 });
-        context.renderer.begin_path();
         var y: isize = 0;
         while (y <= self.grid.height) : (y += 1) {
+            context.renderer.begin_path();
             context.renderer.move_to(
                 grid_offset.x(),
                 grid_offset.y() + @intToFloat(f32, y) * CELL_HEIGHT,
@@ -185,9 +185,11 @@ pub const Game = struct {
                 grid_offset.x() + @intToFloat(f32, self.grid.width) * CELL_WIDTH,
                 grid_offset.y() + @intToFloat(f32, y) * CELL_HEIGHT,
             );
+            context.renderer.stroke();
         }
         var x: isize = 0;
         while (x <= self.grid.height) : (x += 1) {
+            context.renderer.begin_path();
             context.renderer.move_to(
                 grid_offset.x() + @intToFloat(f32, x) * CELL_WIDTH,
                 grid_offset.y(),
@@ -196,8 +198,8 @@ pub const Game = struct {
                 grid_offset.x() + @intToFloat(f32, x) * CELL_WIDTH,
                 grid_offset.y() + @intToFloat(f32, self.grid.height) * CELL_HEIGHT,
             );
+            context.renderer.stroke();
         }
-        context.renderer.stroke();
 
         context.renderer.set_fill_style(.{ .Color = .{ .r = 100, .g = 100, .b = 100, .a = 255 } });
 

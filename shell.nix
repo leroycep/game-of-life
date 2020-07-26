@@ -6,7 +6,7 @@ in
 pkgs.mkShell {
   buildInputs = [
     pkgs.python38Packages.livereload
-    pkgs.gdb
+    pkgs.gdb pkgs.valgrind
     pkgs.SDL2
     pkgs.pkg-config
     pathfinder_c

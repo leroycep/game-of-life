@@ -13,6 +13,7 @@ pub const Context = struct {
     gl_context: c.SDL_GLContext,
 
     pub fn deinit(self: @This()) void {
+        self.renderer.deinit();
         c.SDL_GL_DeleteContext(self.gl_context);
         c.SDL_DestroyWindow(self.window);
         c.SDL_Quit();

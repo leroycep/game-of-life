@@ -1,3 +1,4 @@
+const std = @import("std");
 const common = @import("../common/common.zig");
 const FillStyle = common.renderer.FillStyle;
 const LineCap = common.renderer.LineCap;
@@ -6,15 +7,18 @@ const Vec2f = @import("../../utils.zig").Vec2f;
 const c = @import("./c.zig");
 
 pub const Renderer = struct {
+    resource_loader: c.PFResourceLoaderRef,
     pf_gl_renderer: c.PFGLRendererRef,
+    font_context: c.PFCanvasFontContextRef,
     canvas: ?c.PFCanvasRef,
     path: ?c.PFPathRef,
 
     pub fn init() @This() {
         const dest_framebuffer = c.PFGLDestFramebufferCreateFullWindow(&c.PFVector2I{ .x = 640, .y = 480 });
+        const resource_loader = c.PFFilesystemResourceLoaderLocate();
         const pf_gl_renderer = c.PFGLRendererCreate(
             c.PFGLDeviceCreate(c.PF_GL_VERSION_GL3, 0),
-            c.PFFilesystemResourceLoaderLocate(),
+            resource_loader,
             &c.PFRendererMode{
                 .level = c.PF_RENDERER_LEVEL_D3D9,
             },
@@ -26,20 +30,29 @@ pub const Renderer = struct {
         );
 
         return .{
+            .resource_loader = resource_loader,
             .pf_gl_renderer = pf_gl_renderer,
+            .font_context = c.PFCanvasFontContextCreateWithSystemSource(),
             .canvas = null,
             .path = null,
         };
     }
 
+    pub fn deinit(self: @This()) void {
+        c.PFCanvasFontContextRelease(self.font_context);
+        c.PFGLRendererDestroy(self.pf_gl_renderer);
+        c.PFResourceLoaderDestroy(self.resource_loader);
+    }
+
     pub fn begin(self: *@This()) void {
-        self.canvas = c.PFCanvasCreate(c.PFCanvasFontContextCreateWithSystemSource(), &c.PFVector2F{ .x = 640, .y = 480 }) orelse @import("std").debug.panic("stuff", .{});
+        self.canvas = c.PFCanvasCreate(self.font_context, &c.PFVector2F{ .x = 640, .y = 480 }) orelse @import("std").debug.panic("stuff", .{});
     }
 
     pub fn set_fill_style(self: *@This(), fill_style: FillStyle) void {
         const style = switch (fill_style) {
             .Color => |color| c.PFFillStyleCreateColor(&c.PFColorU{ .r = color.r, .g = color.g, .b = color.b, .a = color.a }),
         };
+        defer c.PFFillStyleDestroy(style);
         c.PFCanvasSetFillStyle(self.canvas.?, style);
     }
 
@@ -47,6 +60,7 @@ pub const Renderer = struct {
         const style = switch (stroke_style) {
             .Color => |color| c.PFFillStyleCreateColor(&c.PFColorU{ .r = color.r, .g = color.g, .b = color.b, .a = color.a }),
         };
+        defer c.PFFillStyleDestroy(style);
         c.PFCanvasSetStrokeStyle(self.canvas.?, style);
     }
 
@@ -75,12 +89,11 @@ pub const Renderer = struct {
     }
 
     pub fn begin_path(self: *@This()) void {
-        self.path = c.PFPathCreate() orelse @import("std").debug.panic("stuff", .{});
+        self.path = c.PFPathCreate() orelse std.debug.panic("stuff", .{});
     }
 
     pub fn stroke(self: *@This()) void {
         c.PFCanvasStrokePath(self.canvas.?, self.path.?);
-        //c.PFPathDestroy(self.path.?);
         self.path = null;
     }
 
@@ -104,9 +117,11 @@ pub const Renderer = struct {
         // Render canvas to screen
         const scene = c.PFCanvasCreateScene(self.canvas.?);
         const scene_proxy = c.PFSceneProxyCreateFromSceneAndRayonExecutor(scene, c.PF_RENDERER_LEVEL_D3D9);
+        defer c.PFSceneProxyDestroy(scene_proxy);
 
         const build_options = c.PFBuildOptionsCreate();
         defer c.PFBuildOptionsDestroy(build_options);
+
         c.PFSceneProxyBuildAndRenderGL(scene_proxy, self.pf_gl_renderer, build_options);
 
         self.canvas = null;

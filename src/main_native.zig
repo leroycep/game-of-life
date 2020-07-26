@@ -8,7 +8,6 @@ pub fn main() !void {
     const alloc = std.heap.c_allocator;
 
     var context = try platform.init(alloc, constants.APP_NAME, 640, 480);
-    // TODO: call this from Context
     defer context.deinit();
 
     app.onInit(&context);
