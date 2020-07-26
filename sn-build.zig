@@ -7,23 +7,24 @@ const SITE_DIR = "www";
 
 pub fn build(b: *Builder) void {
     const target = b.standardTargetOptions(.{});
-    const mode = b.standardReleaseOptions();
+    const exe = b.addExecutable("snake-game", "src/main_native.zig");
+    exe.setBuildMode(b.standardReleaseOptions());
+    exe.setTarget(target);
+    exe.linkSystemLibrary("SDL2");
+    exe.linkSystemLibrary("freetype");
+    exe.addIncludeDir("./c/include/");
+    exe.addCSourceFile("./c/src/glad.c", &[_][]const u8{});
+    exe.linkLibC();
+    //exe.setTargetGLibC(2, 17, 0);
+    exe.install();
 
     const tests = b.addTest("src/app.zig");
 
-    const native = b.addExecutable("game-of-life", "src/main_native.zig");
-    native.linkSystemLibrary("SDL2");
-    native.linkSystemLibrary("pathfinder_c");
-    native.linkLibC();
-    native.setTarget(target);
-    native.setBuildMode(mode);
-    native.install();
-    b.step("native", "Build native binary").dependOn(&native.step);
+    const run_cmd = exe.run();
+    run_cmd.step.dependOn(b.getInstallStep());
 
-    b.step("run", "Run the native binary").dependOn(&native.run().step);
-
-    const wasm = b.addStaticLibrary("game-of-life", "src/main_web.zig");
-    wasm.step.dependOn(&b.addExecutable("canvas_generate", "tools/canvas_generate.zig").run().step);
+    const wasm = b.addStaticLibrary("snake-game", "src/main_web.zig");
+    wasm.step.dependOn(&b.addExecutable("webgl_generate", "tools/webgl_generate.zig").run().step);
     const wasmOutDir = b.fmt("{}" ++ sep_str ++ SITE_DIR, .{b.install_prefix});
     wasm.setOutputDir(wasmOutDir);
     wasm.setBuildMode(b.standardReleaseOptions());
@@ -45,10 +46,12 @@ pub fn build(b: *Builder) void {
     wasm.step.dependOn(&jsInstall.step);
 
     b.step("wasm", "Build WASM binary").dependOn(&wasm.step);
+    b.step("native", "Build the native binary").dependOn(&exe.step);
+    b.step("run", "Run the native binary").dependOn(&run_cmd.step);
     b.step("test", "Run tests").dependOn(&tests.step);
 
     const all = b.step("all", "Build all binaries");
-    all.dependOn(&native.step);
     all.dependOn(&wasm.step);
+    all.dependOn(&exe.step);
     all.dependOn(&tests.step);
 }

@@ -3,9 +3,9 @@ const screen = @import("../screen.zig");
 const Screen = screen.Screen;
 const platform = @import("../platform.zig");
 const components = platform.components;
-const Vec = @import("../utils.zig").Vec;
-const Vec2f = @import("../utils.zig").Vec2f;
-const Vec2i = @import("../utils.zig").Vec2i;
+const Vec = platform.Vec;
+const Vec2f = platform.Vec2f;
+const Vec2i = platform.Vec2i;
 const Context = platform.Context;
 const Renderer = platform.Renderer;
 const game = @import("../game.zig");
@@ -26,7 +26,7 @@ pub const Game = struct {
     start_cell: Vec2i,
     prev_cell: Vec2i,
 
-    camera_pos: Vec2f,
+    camera_pos: Vec2f = Vec2f.init(0, 0),
 
     ticks_per_step: f32 = 10,
     ticks_since_last_step: f32 = 0,
@@ -35,10 +35,10 @@ pub const Game = struct {
     pub fn init(alloc: *std.mem.Allocator) !*@This() {
         const self = try alloc.create(@This());
         const grid = try GridOfLife.init(alloc, DEFAULT_GRID_WIDTH, DEFAULT_GRID_HEIGHT);
-        const screen_size = platform.getScreenSize().intToFloat(f32);
         self.* = .{
             .alloc = alloc,
             .screen = .{
+                .startFn = start,
                 .onEventFn = onEvent,
                 .updateFn = update,
                 .renderFn = render,
@@ -48,11 +48,16 @@ pub const Game = struct {
             .step_once = false,
             .start_cell = Vec2i.init(-1, -1),
             .prev_cell = Vec2i.init(-1, -1),
-            .camera_pos = screen_size.scalMul(0.5),
             .grid = grid,
         };
         self.grid.get_unchecked(2, 0).* = true;
         return self;
+    }
+
+    pub fn start(screenPtr: *Screen, context: *Context) void {
+        const self = @fieldParentPtr(@This(), "screen", screenPtr);
+        const screen_size = context.getScreenSize().intToFloat(f32);
+        self.camera_pos = screen_size.scalMul(0.5);
     }
 
     pub fn onEvent(screenPtr: *Screen, context: *Context, event: platform.Event) void {
@@ -158,7 +163,7 @@ pub const Game = struct {
 
         context.renderer.begin();
 
-        const screen_size = platform.getScreenSize().intToFloat(f32);
+        const screen_size = context.getScreenSize().intToFloat(f32);
 
         context.renderer.set_fill_style(.{ .Color = .{ .r = 255, .g = 255, .b = 255, .a = 255 } });
         context.renderer.fill_rect(0, 0, screen_size.x(), screen_size.y());
@@ -168,7 +173,7 @@ pub const Game = struct {
         context.renderer.set_stroke_style(.{ .Color = .{ .r = 0xCC, .g = 0xCC, .b = 0xCC, .a = 255 } });
         context.renderer.set_line_cap(.square);
         context.renderer.set_line_width(1.5);
-        context.renderer.set_line_dash(&[_]i32{ 4, 8, 4, 0 });
+        context.renderer.set_line_dash(&[_]f32{ 4, 8, 4, 0 });
         context.renderer.begin_path();
         var y: isize = 0;
         while (y <= self.grid.height) : (y += 1) {
@@ -225,6 +230,8 @@ pub const Game = struct {
             context.renderer.fill_text("Paused", screen_size.x() / 2, screen_size.y() - 30);
             context.renderer.fill_text("(Press Space to Resume)", screen_size.x() / 2, screen_size.y() - 15);
         }
+
+        context.renderer.flush();
     }
 
     pub fn deinit(screenPtr: *Screen, context: *Context) void {

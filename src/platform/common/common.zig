@@ -1,5 +1,11 @@
+pub const renderer = @import("./renderer.zig");
+
+pub const Vec = @import("./vec.zig").Vec;
+pub const Vec2i = Vec(2, i32);
+pub const Vec2u = Vec(2, u32);
+pub const Vec2f = Vec(2, f32);
+
 const math = @import("std").math;
-const Vec2i = @import("../utils.zig").Vec2i;
 
 pub const Color = struct { r: u8, g: u8, b: u8, a: u8 };
 

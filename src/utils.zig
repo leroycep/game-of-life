@@ -1,10 +1,5 @@
 const std = @import("std");
 
-pub const Vec = @import("util/vec.zig").Vec;
-pub const Vec2i = Vec(2, i32);
-pub const Vec2u = Vec(2, u32);
-pub const Vec2f = Vec(2, f32);
-
 pub const OptionTag = enum {
     Some,
     None,

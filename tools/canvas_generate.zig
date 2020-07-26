@@ -142,7 +142,7 @@ const funcs = [_]Func{
     Func{
         .name = "canvas_setLineDash",
         .args = &[_]Arg{
-            .{ .name = "segments", .type = "SLICE(i32)" },
+            .{ .name = "segments", .type = "SLICE(f32)" },
         },
         .ret = "void",
         .js =
@@ -214,7 +214,7 @@ fn writeZigFile(filename: []const u8) !void {
 
     for (funcs) |func| {
         const any_slice = for (func.args) |arg| {
-            if (std.mem.eql(u8, arg.type, "STRING") or std.mem.eql(u8, arg.type, "SLICE(i32)")) {
+            if (std.mem.eql(u8, arg.type, "STRING") or std.mem.eql(u8, arg.type, "SLICE(f32)")) {
                 break true;
             }
         } else false;
@@ -229,8 +229,8 @@ fn writeZigFile(filename: []const u8) !void {
             }
             if (std.mem.eql(u8, arg.type, "STRING")) {
                 try stream.print("{}_ptr: [*]const u8, {}_len: c_uint", .{ arg.name, arg.name });
-            } else if (std.mem.eql(u8, arg.type, "SLICE(i32)")) {
-                try stream.print("{}_ptr: [*]const i32, {}_len: c_uint", .{ arg.name, arg.name });
+            } else if (std.mem.eql(u8, arg.type, "SLICE(f32)")) {
+                try stream.print("{}_ptr: [*]const f32, {}_len: c_uint", .{ arg.name, arg.name });
             } else {
                 try stream.print("{}: {}", .{ arg.name, arg.type });
             }
@@ -245,8 +245,8 @@ fn writeZigFile(filename: []const u8) !void {
                 }
                 if (std.mem.eql(u8, arg.type, "STRING")) {
                     try stream.print("{}: []const u8", .{arg.name});
-                } else if (std.mem.eql(u8, arg.type, "SLICE(i32)")) {
-                    try stream.print("{}: []const i32", .{arg.name});
+                } else if (std.mem.eql(u8, arg.type, "SLICE(f32)")) {
+                    try stream.print("{}: []const f32", .{arg.name});
                 } else {
                     try stream.print("{}: {}", .{ arg.name, arg.type });
                 }
@@ -259,7 +259,7 @@ fn writeZigFile(filename: []const u8) !void {
                 if (i > 0) {
                     try stream.print(", ", .{});
                 }
-                if (std.mem.eql(u8, arg.type, "STRING") or std.mem.eql(u8, arg.type, "SLICE(i32)")) {
+                if (std.mem.eql(u8, arg.type, "STRING") or std.mem.eql(u8, arg.type, "SLICE(f32)")) {
                     try stream.print("{}.ptr, {}.len", .{ arg.name, arg.name });
                 } else {
                     try stream.print("{}", .{arg.name});
@@ -282,7 +282,7 @@ fn writeJsFile(filename: []const u8) !void {
     try stream.print("    return {{\n", .{});
     for (funcs) |func| {
         const any_slice = for (func.args) |arg| {
-            if (std.mem.eql(u8, arg.type, "STRING") or std.mem.eql(u8, arg.type, "SLICE(i32)")) {
+            if (std.mem.eql(u8, arg.type, "STRING") or std.mem.eql(u8, arg.type, "SLICE(f32)")) {
                 break true;
             }
         } else false;
@@ -294,7 +294,7 @@ fn writeJsFile(filename: []const u8) !void {
             if (i > 0) {
                 try stream.print(", ", .{});
             }
-            if (std.mem.eql(u8, arg.type, "STRING") or std.mem.eql(u8, arg.type, "SLICE(i32)")) {
+            if (std.mem.eql(u8, arg.type, "STRING") or std.mem.eql(u8, arg.type, "SLICE(f32)")) {
                 try stream.print("{}_ptr, {}_len", .{ arg.name, arg.name });
             } else {
                 try stream.print("{}", .{arg.name});
@@ -304,7 +304,7 @@ fn writeJsFile(filename: []const u8) !void {
         for (func.args) |arg| {
             if (std.mem.eql(u8, arg.type, "STRING")) {
                 try stream.print("            const {} = readCharStr({}_ptr, {}_len);\n", .{ arg.name, arg.name, arg.name });
-            } else if (std.mem.eql(u8, arg.type, "SLICE(i32)")) {
+            } else if (std.mem.eql(u8, arg.type, "SLICE(f32)")) {
                 try stream.print("            const {} = readI32Array({}_ptr, {}_len);\n", .{ arg.name, arg.name, arg.name });
             }
         }
@@ -322,6 +322,6 @@ fn writeJsFile(filename: []const u8) !void {
 }
 
 pub fn main() !void {
-    try writeZigFile("src/platform/web_canvas_generated.zig");
+    try writeZigFile("src/platform/web/canvas_generated.zig");
     try writeJsFile("js/canvas_generated.js");
 }

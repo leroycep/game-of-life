@@ -2,7 +2,7 @@ const app = @import("app.zig");
 const constants = @import("constants.zig");
 const platform = @import("platform.zig");
 const std = @import("std");
-const Vec2i = @import("utils.zig").Vec2i;
+const Vec2i = platform.Vec2i;
 
 export const SCANCODE_ESCAPE = @enumToInt(platform.Scancode.ESCAPE);
 export const SCANCODE_W = @enumToInt(platform.Scancode.W);
