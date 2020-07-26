@@ -218,9 +218,17 @@ pub const Game = struct {
 
         var buf: [100]u8 = undefined;
 
-        const text = std.fmt.bufPrint(&buf, "Generation #{}", .{self.grid.generation}) catch return;
-        context.renderer.set_text_align(.Left);
-        context.renderer.fill_text(text, 20, screen_size.y() - 20);
+        {
+            const text = std.fmt.bufPrint(&buf, "Generation #{}", .{self.grid.generation}) catch return;
+            context.renderer.set_text_align(.Left);
+            context.renderer.fill_text(text, 20, screen_size.y() - 20);
+        }
+
+        {
+            const text = std.fmt.bufPrint(&buf, "Ticks Per Step: {d}, Ticks: {d}", .{self.ticks_per_step, self.ticks_since_last_step}) catch return;
+            context.renderer.set_text_align(.Left);
+            context.renderer.fill_text(text, 20, screen_size.y() - 40);
+        }
 
         context.renderer.set_text_align(.Right);
         context.renderer.fill_text("Press → to advance one step", screen_size.x() - 20, screen_size.y() - 20);
