@@ -25,7 +25,7 @@ let env = {
   now_f64: ptr => Date.now()
 };
 
-fetch("snake-game.wasm")
+fetch("game-of-life-web.wasm")
   .then(response => response.arrayBuffer())
   .then(bytes => WebAssembly.instantiate(bytes, { env }))
   .then(results => results.instance)
