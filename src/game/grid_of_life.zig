@@ -30,6 +30,11 @@ pub const GridOfLife = struct {
         return &self.cells[i];
     }
 
+    pub fn is_alive(self: @This(), x: isize, y: isize) bool {
+        const i = self.idx(x, y) orelse return false;
+        return self.cells[i];
+    }
+
     pub fn get_unchecked(self: @This(), x: isize, y: isize) *bool {
         const i = self.idx(x, y) orelse unreachable;
         return &self.cells[i];

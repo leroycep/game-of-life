@@ -250,11 +250,13 @@ pub const Game = struct {
             x = 0;
             while (x < self.grid.width) : (x += 1) {
                 if (self.grid.get_unchecked(x, y).*) {
+                    const x_epsilon: f32 = if (self.grid.is_alive(x+1, y)) 1 else 0;
+                    const y_epsilon: f32 = if (self.grid.is_alive(x, y+1)) 1 else 0;
                     context.renderer.fill_rect(
                         grid_offset.x() + @intToFloat(f32, x) * self.scale,
                         grid_offset.y() + @intToFloat(f32, y) * self.scale,
-                        self.scale + 1,
-                        self.scale + 1,
+                        self.scale + x_epsilon,
+                        self.scale + y_epsilon,
                     );
                 }
             }
@@ -268,7 +270,10 @@ pub const Game = struct {
                 context.renderer.set_fill_style(.{ .Color = .{ .r = 0xDD, .g = 0xDD, .b = 0xDD, .a = 0xFF } });
             }
             const draw_pos = highlight_cell_pos.intToFloat(f32).scalMul(self.scale).add(grid_offset);
-            context.renderer.fill_rect(draw_pos.x(), draw_pos.y(), self.scale, self.scale);
+            const epsilon: f32 = if (cell.*) 1 else 0;
+            const x_epsilon: f32 = if (self.grid.is_alive(highlight_cell_pos.x()+1, highlight_cell_pos.y())) epsilon else 0;
+            const y_epsilon: f32 = if (self.grid.is_alive(highlight_cell_pos.x(), highlight_cell_pos.y()+1)) epsilon else 0;
+            context.renderer.fill_rect(draw_pos.x(), draw_pos.y(), self.scale + x_epsilon, self.scale + y_epsilon);
         }
 
         context.renderer.set_fill_style(.{ .Color = .{ .r = 100, .g = 100, .b = 100, .a = 255 } });
