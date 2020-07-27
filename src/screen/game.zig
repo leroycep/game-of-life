@@ -33,6 +33,7 @@ pub const Game = struct {
     camera_pos: Vec2f = Vec2f.init(0, 0),
     cursor_pos: Vec2f = Vec2f.init(0, 0),
     scale: f32 = 16.0,
+    screen_size: Vec2f = Vec2f.init(0, 0),
 
     ticks_per_step: f32 = 10,
     ticks_since_last_step: f32 = 0,
@@ -81,7 +82,7 @@ pub const Game = struct {
             },
             .MouseButtonDown => |ev| switch (ev.button) {
                 .Left => if (self.paused) {
-                    self.start_cell = self.point_to_cell(ev.pos);
+                    self.start_cell = self.cursor_pos_to_cell(ev.pos.intToFloat(f32));
                     self.prev_cell = self.start_cell;
                     if (self.grid.get(self.start_cell.x(), self.start_cell.y())) |cell| {
                         cell.* = !cell.*;
@@ -104,7 +105,7 @@ pub const Game = struct {
             },
             .MouseMotion => |ev| {
                 if (self.paused and ev.is_pressed(.Left)) setting_cells: {
-                    const current_cell = self.point_to_cell(ev.pos);
+                    const current_cell = self.cursor_pos_to_cell(ev.pos.intToFloat(f32));
                     if (self.start_cell.eql(current_cell)) break :setting_cells;
                     self.fill_line_on_grid(self.prev_cell, current_cell);
                     self.prev_cell = current_cell;
@@ -118,26 +119,39 @@ pub const Game = struct {
             },
             .MouseWheel => |delta| {
                 // Save the position of the cursor in the world
-                const cursor_world_pos = self.cursor_pos.add(self.camera_pos).scalDiv(self.scale);
+                const cursor_world_pos = self.camera_relative_pos_to_cell(self.cursor_pos_to_camera_relative(self.cursor_pos));
 
                 const deltaY = @intToFloat(f32, delta.y()) * -1;
                 self.scale = std.math.clamp(self.scale + deltaY, MIN_SCALE, MAX_SCALE);
 
                 // Set the camera position so that the cursor stays in the same spot in the world
-                self.camera_pos = cursor_world_pos.scalMul(self.scale).sub(self.cursor_pos);
+                self.camera_pos = self.cell_pos_to_camera_relative(cursor_world_pos).sub(self.cursor_pos).add(self.screen_size.scalMul(0.5));
             },
             .ScreenResized => |size| {
-                self.camera_pos = size.intToFloat(f32).scalMul(-0.5);
+                self.screen_size = size.intToFloat(f32);
             },
             else => {},
         }
     }
 
-    fn point_to_cell(self: *@This(), pos_0: Vec2i) Vec2i {
-        const pos = pos_0.add(self.camera_pos.floatToInt(i32));
-        const cell_x = @divFloor(pos.x(), @floatToInt(i32, self.scale));
-        const cell_y = @divFloor(pos.y(), @floatToInt(i32, self.scale));
-        return Vec2i.init(cell_x, cell_y);
+    fn cursor_pos_to_cell(self: *@This(), pos: Vec2f) Vec2i {
+        return self.camera_relative_pos_to_cell(self.cursor_pos_to_camera_relative(pos)).floatToInt(i32);
+    }
+
+    fn cursor_pos_to_camera_relative(self: *@This(), pos: Vec2f) Vec2f {
+        return pos.sub(self.screen_size.scalMul(0.5)).add(self.camera_pos);
+    }
+
+    fn camera_relative_pos_to_cursor(self: *@This(), pos: Vec2f) Vec2f {
+        return pos.add(self.screen_size.scalMul(0.5)).sub(self.camera_pos);
+    }
+
+    fn camera_relative_pos_to_cell(self: *@This(), pos: Vec2f) Vec2f {
+        return pos.scalDiv(self.scale);
+    }
+
+    fn cell_pos_to_camera_relative(self: *@This(), pos: Vec2f) Vec2f {
+        return pos.scalMul(self.scale);
     }
 
     fn fill_line_on_grid(self: *@This(), pos0: Vec2i, pos1: Vec2i) void {
@@ -192,12 +206,10 @@ pub const Game = struct {
 
         context.renderer.begin();
 
-        const screen_size = context.getScreenSize().intToFloat(f32);
-
         context.renderer.set_fill_style(.{ .Color = .{ .r = 255, .g = 255, .b = 255, .a = 255 } });
-        context.renderer.fill_rect(0, 0, screen_size.x(), screen_size.y());
+        context.renderer.fill_rect(0, 0, self.screen_size.x(), self.screen_size.y());
 
-        const grid_offset = self.camera_pos.scalMul(-1);
+        const grid_offset = self.camera_relative_pos_to_cursor(Vec2f.init(0,0));
 
         context.renderer.set_stroke_style(.{ .Color = .{ .r = 0xCC, .g = 0xCC, .b = 0xCC, .a = 255 } });
         context.renderer.set_line_cap(.square);
@@ -241,34 +253,46 @@ pub const Game = struct {
                     context.renderer.fill_rect(
                         grid_offset.x() + @intToFloat(f32, x) * self.scale,
                         grid_offset.y() + @intToFloat(f32, y) * self.scale,
-                        self.scale,
-                        self.scale,
+                        self.scale + 1,
+                        self.scale + 1,
                     );
                 }
             }
         }
 
+        const highlight_cell_pos = self.cursor_pos_to_cell(self.cursor_pos);
+        if (self.grid.get(highlight_cell_pos.x(), highlight_cell_pos.y())) |cell| {
+            if (cell.*) {
+                context.renderer.set_fill_style(.{ .Color = .{ .r = 0x77, .g = 0x77, .b = 0x77, .a = 0xFF } });
+            } else {
+                context.renderer.set_fill_style(.{ .Color = .{ .r = 0xDD, .g = 0xDD, .b = 0xDD, .a = 0xFF } });
+            }
+            const draw_pos = highlight_cell_pos.intToFloat(f32).scalMul(self.scale).add(grid_offset);
+            context.renderer.fill_rect(draw_pos.x(), draw_pos.y(), self.scale, self.scale);
+        }
+
+        context.renderer.set_fill_style(.{ .Color = .{ .r = 100, .g = 100, .b = 100, .a = 255 } });
         var buf: [100]u8 = undefined;
 
         {
             const text = std.fmt.bufPrint(&buf, "Generation #{}", .{self.grid.generation}) catch return;
             context.renderer.set_text_align(.Left);
-            context.renderer.fill_text(text, 20, screen_size.y() - 20);
+            context.renderer.fill_text(text, 20, self.screen_size.y() - 20);
         }
 
         {
             const text = std.fmt.bufPrint(&buf, "Ticks Per Step: {d}, Ticks: {d}", .{ self.ticks_per_step, self.ticks_since_last_step }) catch return;
             context.renderer.set_text_align(.Left);
-            context.renderer.fill_text(text, 20, screen_size.y() - 40);
+            context.renderer.fill_text(text, 20, self.screen_size.y() - 40);
         }
 
         context.renderer.set_text_align(.Right);
-        context.renderer.fill_text("Press → to advance one step", screen_size.x() - 20, screen_size.y() - 20);
+        context.renderer.fill_text("Press → to advance one step", self.screen_size.x() - 20, self.screen_size.y() - 20);
 
         if (self.paused) {
             context.renderer.set_text_align(.Center);
-            context.renderer.fill_text("Paused", screen_size.x() / 2, screen_size.y() - 30);
-            context.renderer.fill_text("(Press Space to Resume)", screen_size.x() / 2, screen_size.y() - 15);
+            context.renderer.fill_text("Paused", self.screen_size.x() / 2, self.screen_size.y() - 30);
+            context.renderer.fill_text("(Press Space to Resume)", self.screen_size.x() / 2, self.screen_size.y() - 15);
         }
 
         context.renderer.flush();

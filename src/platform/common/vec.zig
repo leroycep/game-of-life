@@ -186,10 +186,21 @@ pub fn Vec(comptime S: usize, comptime T: type) type {
             return .{ .v = res };
         }
 
+        pub fn intCast(self: @This(), comptime I: type) Vec(S, I) {
+            var res: [S]I = undefined;
+
+            comptime var i = 0;
+            inline while (i < S) : (i += 1) {
+                res[i] = @intCast(I, self.v[i]);
+            }
+
+            return .{ .v = res };
+        }
+
         pub fn format(self: @This(), comptime fmt: []const u8, opt: std.fmt.FormatOptions, out: anytype) !void {
             return switch (S) {
-                2 => std.fmt.format(out, "<{}, {}>", .{ self.x(), self.y() }),
-                3 => std.fmt.format(out, "<{}, {}, {}>", .{ self.x(), self.y(), self.z() }),
+                2 => std.fmt.format(out, "<{d}, {d}>", .{ self.x(), self.y() }),
+                3 => std.fmt.format(out, "<{d}, {d}, {d}>", .{ self.x(), self.y(), self.z() }),
                 else => @compileError("Format is unsupported for this vector size"),
             };
         }
