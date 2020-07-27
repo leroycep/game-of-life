@@ -5,7 +5,7 @@ const Event = platform.Event;
 const Rect = platform.Rect;
 const vec2f = platform.vec2f;
 
-pub const Label = @import("./text.zig").Label;
+pub const Label = @import("./label.zig").Label;
 
 // A dummy type to use with fieldParentPtr
 pub const Props = usize;
