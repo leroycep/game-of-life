@@ -5,6 +5,26 @@ pub const Vec2i = Vec(2, i32);
 pub const Vec2u = Vec(2, u32);
 pub const Vec2f = Vec(2, f32);
 
+pub fn vec2i(x: i32, y: i32) Vec(2, i32) {
+    return Vec(2, i32).init(x, y);
+}
+
+pub fn vec2u(x: u32, y: u32) Vec(2, u32) {
+    return Vec(2, u32).init(x, y);
+}
+
+pub fn vec2f(x: f32, y: f32) Vec(2, f32) {
+    return Vec(2, f32).init(x, y);
+}
+
+pub fn vec2us(x: usize, y: usize) Vec(2, usize) {
+    return Vec(2, usize).init(x, y);
+}
+
+pub fn vec2is(x: isize, y: isize) Vec(2, isize) {
+    return Vec(2, isize).init(x, y);
+}
+
 const math = @import("std").math;
 
 pub const Color = struct { r: u8, g: u8, b: u8, a: u8 };

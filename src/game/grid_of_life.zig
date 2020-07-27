@@ -1,18 +1,32 @@
 const std = @import("std");
+const platform = @import("../platform.zig");
+const Vec = platform.Vec;
+const vec2us = platform.vec2us;
+const vec2is = platform.vec2is;
+
+pub const GridOptions = struct {
+    size: Vec(2, usize),
+    edge_behaviour: enum {
+        /// Positions will wrap around to the other side of the board
+        Wrapping,
+    } = .Wrapping,
+};
 
 pub const GridOfLife = struct {
-    width: usize,
-    height: usize,
+    options: GridOptions,
     cells: []bool,
     cells_next: []bool,
     generation: usize,
 
-    pub fn init(alloc: *std.mem.Allocator, width: usize, height: usize) !@This() {
+    pub fn init(alloc: *std.mem.Allocator, options: GridOptions) !@This() {
+        const cells = try alloc.alloc(bool, options.size.x() * options.size.y());
+        errdefer alloc.free(cells);
+        const cells_next = try alloc.alloc(bool, options.size.x() * options.size.y());
+        errdefer alloc.free(cells_next);
         var self = @This(){
-            .width = width,
-            .height = height,
-            .cells = try alloc.alloc(bool, width * height),
-            .cells_next = try alloc.alloc(bool, width * height),
+            .options = options,
+            .cells = cells,
+            .cells_next = cells_next,
             .generation = 0,
         };
         std.mem.set(bool, self.cells, false);
@@ -25,42 +39,45 @@ pub const GridOfLife = struct {
         alloc.free(self.cells_next);
     }
 
-    pub fn get(self: @This(), x: isize, y: isize) ?*bool {
-        const i = self.idx(x, y) orelse return null;
-        return &self.cells[i];
-    }
-
-    pub fn is_alive(self: @This(), x: isize, y: isize) bool {
-        const i = self.idx(x, y) orelse return false;
+    // Get the cell at the position specified, respecting edge behaviour
+    pub fn get(self: @This(), pos: Vec(2, isize)) bool {
+        const i = switch (self.options.edge_behaviour) {
+            .Wrapping => self.idx_wrapping(pos),
+        };
         return self.cells[i];
     }
 
-    pub fn get_unchecked(self: @This(), x: isize, y: isize) *bool {
-        const i = self.idx(x, y) orelse unreachable;
-        return &self.cells[i];
+    // Set the cell at the position specified, respecting edge behaviour
+    pub fn set(self: @This(), pos: Vec(2, isize), value: bool) void {
+        const i = switch (self.options.edge_behaviour) {
+            .Wrapping => self.idx_wrapping(pos),
+        };
+        self.cells[i] = value;
     }
 
-    pub fn get_wrapping(self: @This(), x: isize, y: isize) *bool {
-        const i = self.idx_wrapping(x, y);
-        return &self.cells[i];
+    // This get function will only return a value if it is inside the board
+    pub fn get_bounds_check(self: @This(), pos: Vec(2, isize)) ?bool {
+        const i = self.idx(pos) orelse return null;
+        return self.cells[i];
     }
 
-    pub fn idx(self: @This(), x: isize, y: isize) ?usize {
-        if (x < 0 or x >= self.width or y < 0 or y >= self.height) return null;
-        return @intCast(usize, y) * self.width + @intCast(usize, x);
+    pub fn idx(self: @This(), pos: Vec(2, isize)) ?usize {
+        if (pos.x() < 0 or pos.x() >= self.options.size.x() or pos.y() < 0 or pos.y() >= self.options.size.y()) return null;
+        const pos_u = pos.intCast(usize);
+        return pos_u.y() * self.options.size.y() + pos_u.x();
     }
 
-    pub fn idx_wrapping(self: @This(), x: isize, y: isize) usize {
-        const w = @intCast(isize, self.width);
-        const h = @intCast(isize, self.height);
-        return @intCast(usize, @mod(y, h) * w + @mod(x, w));
+    pub fn idx_wrapping(self: @This(), pos: Vec(2, isize)) usize {
+        const size_i = self.options.size.intCast(isize);
+        return @intCast(usize, @mod(pos.y(), size_i.y()) * size_i.x() + @mod(pos.x(), size_i.x()));
     }
 
     pub fn step(self: *@This()) void {
         var y: isize = 0;
-        while (y < self.height) : (y += 1) {
+        while (y < self.options.size.y()) : (y += 1) {
             var x: isize = 0;
-            while (x < self.width) : (x += 1) {
+            while (x < self.options.size.x()) : (x += 1) {
+                const pos = Vec(2, isize).init(x, y);
                 var neighbors: u8 = 0;
 
                 var j: isize = -1;
@@ -68,22 +85,21 @@ pub const GridOfLife = struct {
                     var i: isize = -1;
                     while (i <= 1) : (i += 1) {
                         if (i == 0 and j == 0) continue;
-                        if (self.get_wrapping(x + i, y + j).*) {
+                        const offset = vec2is(i, j);
+                        if (self.get(pos.add(offset))) {
                             neighbors += 1;
                         }
                     }
                 }
 
-                const cell = &self.cells_next[self.idx_wrapping(x, y)];
-                switch (neighbors) {
-                    0, 1 => cell.* = false,
-                    2 => cell.* = self.get_wrapping(x, y).*,
-                    3 => cell.* = true,
-                    4, 5, 6, 7, 8 => {
-                        cell.* = false;
-                    },
+                const next_value = switch (neighbors) {
+                    0, 1 => false,
+                    2 => self.get(pos),
+                    3 => true,
+                    4, 5, 6, 7, 8 => false,
                     else => unreachable,
-                }
+                };
+                self.cells_next[self.idx(pos).?] = next_value;
             }
         }
         const tmp = self.cells;
@@ -94,33 +110,35 @@ pub const GridOfLife = struct {
 };
 
 test "GridOfLife square is stable" {
-    var grid = try GridOfLife.init(std.testing.allocator, 4, 4);
+    var grid = try GridOfLife.init(std.testing.allocator, .{
+        .size = vec2us(4, 4),
+    });
     defer grid.deinit(std.testing.allocator);
 
-    grid.get_wrapping(1, 1).* = true;
-    grid.get_wrapping(2, 1).* = true;
-    grid.get_wrapping(1, 2).* = true;
-    grid.get_wrapping(2, 2).* = true;
+    grid.set(vec2is(1, 1), true);
+    grid.set(vec2is(2, 1), true);
+    grid.set(vec2is(1, 2), true);
+    grid.set(vec2is(2, 2), true);
 
     grid.step();
 
-    std.testing.expect(grid.get_wrapping(1, 1).*);
-    std.testing.expect(grid.get_wrapping(2, 1).*);
-    std.testing.expect(grid.get_wrapping(1, 2).*);
-    std.testing.expect(grid.get_wrapping(2, 2).*);
+    std.testing.expect(grid.get(vec2is(1, 1)));
+    std.testing.expect(grid.get(vec2is(2, 1)));
+    std.testing.expect(grid.get(vec2is(1, 2)));
+    std.testing.expect(grid.get(vec2is(2, 2)));
 
-    std.testing.expect(!grid.get_wrapping(0, 0).*);
-    std.testing.expect(!grid.get_wrapping(1, 0).*);
-    std.testing.expect(!grid.get_wrapping(2, 0).*);
-    std.testing.expect(!grid.get_wrapping(3, 0).*);
+    std.testing.expect(!grid.get(vec2is(0, 0)));
+    std.testing.expect(!grid.get(vec2is(1, 0)));
+    std.testing.expect(!grid.get(vec2is(2, 0)));
+    std.testing.expect(!grid.get(vec2is(3, 0)));
 
-    std.testing.expect(!grid.get_wrapping(0, 1).*);
-    std.testing.expect(!grid.get_wrapping(0, 2).*);
-    std.testing.expect(!grid.get_wrapping(3, 1).*);
-    std.testing.expect(!grid.get_wrapping(3, 2).*);
+    std.testing.expect(!grid.get(vec2is(0, 1)));
+    std.testing.expect(!grid.get(vec2is(0, 2)));
+    std.testing.expect(!grid.get(vec2is(3, 1)));
+    std.testing.expect(!grid.get(vec2is(3, 2)));
 
-    std.testing.expect(!grid.get_wrapping(0, 3).*);
-    std.testing.expect(!grid.get_wrapping(1, 3).*);
-    std.testing.expect(!grid.get_wrapping(2, 3).*);
-    std.testing.expect(!grid.get_wrapping(3, 3).*);
+    std.testing.expect(!grid.get(vec2is(0, 3)));
+    std.testing.expect(!grid.get(vec2is(1, 3)));
+    std.testing.expect(!grid.get(vec2is(2, 3)));
+    std.testing.expect(!grid.get(vec2is(3, 3)));
 }

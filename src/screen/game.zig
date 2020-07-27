@@ -6,6 +6,8 @@ const components = platform.components;
 const Vec = platform.Vec;
 const Vec2f = platform.Vec2f;
 const Vec2i = platform.Vec2i;
+const vec2us = platform.vec2us;
+const vec2is = platform.vec2is;
 const Context = platform.Context;
 const Renderer = platform.Renderer;
 const game = @import("../game.zig");
@@ -25,8 +27,8 @@ pub const Game = struct {
     quit_pressed: bool = false,
     paused: bool,
     step_once: bool,
-    start_cell: Vec2i,
-    prev_cell: Vec2i,
+    start_cell: Vec(2, isize),
+    prev_cell: Vec(2, isize),
 
     start_pan: ?Vec2i = null,
     start_pan_camera_pos: ?Vec2f = null,
@@ -41,7 +43,9 @@ pub const Game = struct {
 
     pub fn init(alloc: *std.mem.Allocator) !*@This() {
         const self = try alloc.create(@This());
-        const grid = try GridOfLife.init(alloc, DEFAULT_GRID_WIDTH, DEFAULT_GRID_HEIGHT);
+        const grid = try GridOfLife.init(alloc, .{
+            .size = vec2us(DEFAULT_GRID_WIDTH, DEFAULT_GRID_HEIGHT),
+        });
         self.* = .{
             .alloc = alloc,
             .screen = .{
@@ -53,11 +57,10 @@ pub const Game = struct {
             },
             .paused = true,
             .step_once = false,
-            .start_cell = Vec2i.init(-1, -1),
-            .prev_cell = Vec2i.init(-1, -1),
+            .start_cell = vec2is(-1, -1),
+            .prev_cell = vec2is(-1, -1),
             .grid = grid,
         };
-        self.grid.get_unchecked(2, 0).* = true;
         return self;
     }
 
@@ -84,9 +87,7 @@ pub const Game = struct {
                 .Left => if (self.paused) {
                     self.start_cell = self.cursor_pos_to_cell(ev.pos.intToFloat(f32));
                     self.prev_cell = self.start_cell;
-                    if (self.grid.get(self.start_cell.x(), self.start_cell.y())) |cell| {
-                        cell.* = !cell.*;
-                    }
+                    self.grid.set(self.start_cell, !self.grid.get(self.start_cell));
                 },
                 .Middle => {
                     self.start_pan = ev.pos;
@@ -134,8 +135,8 @@ pub const Game = struct {
         }
     }
 
-    fn cursor_pos_to_cell(self: *@This(), pos: Vec2f) Vec2i {
-        return self.camera_relative_pos_to_cell(self.cursor_pos_to_camera_relative(pos)).floatToInt(i32);
+    fn cursor_pos_to_cell(self: *@This(), pos: Vec2f) Vec(2, isize) {
+        return self.camera_relative_pos_to_cell(self.cursor_pos_to_camera_relative(pos)).floatToInt(isize);
     }
 
     fn cursor_pos_to_camera_relative(self: *@This(), pos: Vec2f) Vec2f {
@@ -154,7 +155,7 @@ pub const Game = struct {
         return pos.scalMul(self.scale);
     }
 
-    fn fill_line_on_grid(self: *@This(), pos0: Vec2i, pos1: Vec2i) void {
+    fn fill_line_on_grid(self: *@This(), pos0: Vec(2, isize), pos1: Vec(2, isize)) void {
         var p = pos0;
         var d = pos1.sub(pos0);
         d.v[0] = std.math.absInt(d.v[0]) catch return;
@@ -166,9 +167,7 @@ pub const Game = struct {
         );
         var err = d.x() + d.y();
         while (true) {
-            if (self.grid.get(p.x(), p.y())) |cell| {
-                cell.* = true;
-            }
+            self.grid.set(p, true);
             if (p.eql(pos1)) break;
             const e2 = 2 * err;
             if (e2 >= d.y()) {
@@ -209,7 +208,7 @@ pub const Game = struct {
         context.renderer.set_fill_style(.{ .Color = .{ .r = 255, .g = 255, .b = 255, .a = 255 } });
         context.renderer.fill_rect(0, 0, self.screen_size.x(), self.screen_size.y());
 
-        const grid_offset = self.camera_relative_pos_to_cursor(Vec2f.init(0,0));
+        const grid_offset = self.camera_relative_pos_to_cursor(Vec2f.init(0, 0));
 
         context.renderer.set_stroke_style(.{ .Color = .{ .r = 0xCC, .g = 0xCC, .b = 0xCC, .a = 255 } });
         context.renderer.set_line_cap(.square);
@@ -220,25 +219,25 @@ pub const Game = struct {
 
         context.renderer.begin_path();
         var y: isize = 0;
-        while (y <= self.grid.height) : (y += 1) {
+        while (y <= self.grid.options.size.y()) : (y += 1) {
             context.renderer.move_to(
                 grid_offset.x(),
                 grid_offset.y() + @intToFloat(f32, y) * self.scale,
             );
             context.renderer.line_to(
-                grid_offset.x() + @intToFloat(f32, self.grid.width) * self.scale,
+                grid_offset.x() + @intToFloat(f32, self.grid.options.size.x()) * self.scale,
                 grid_offset.y() + @intToFloat(f32, y) * self.scale,
             );
         }
         var x: isize = 0;
-        while (x <= self.grid.height) : (x += 1) {
+        while (x <= self.grid.options.size.x()) : (x += 1) {
             context.renderer.move_to(
                 grid_offset.x() + @intToFloat(f32, x) * self.scale,
                 grid_offset.y(),
             );
             context.renderer.line_to(
                 grid_offset.x() + @intToFloat(f32, x) * self.scale,
-                grid_offset.y() + @intToFloat(f32, self.grid.height) * self.scale,
+                grid_offset.y() + @intToFloat(f32, self.grid.options.size.y()) * self.scale,
             );
         }
         context.renderer.stroke();
@@ -246,15 +245,16 @@ pub const Game = struct {
         context.renderer.set_fill_style(.{ .Color = .{ .r = 100, .g = 100, .b = 100, .a = 255 } });
 
         y = 0;
-        while (y < self.grid.height) : (y += 1) {
+        while (y < self.grid.options.size.y()) : (y += 1) {
             x = 0;
-            while (x < self.grid.width) : (x += 1) {
-                if (self.grid.get_unchecked(x, y).*) {
-                    const x_epsilon: f32 = if (self.grid.is_alive(x+1, y)) 1 else 0;
-                    const y_epsilon: f32 = if (self.grid.is_alive(x, y+1)) 1 else 0;
+            while (x < self.grid.options.size.x()) : (x += 1) {
+                const pos = vec2is(x, y);
+                if (self.grid.get(pos)) {
+                    const x_epsilon: f32 = if (self.grid.get(pos.add(vec2is(1, 0)))) 1 else 0;
+                    const y_epsilon: f32 = if (self.grid.get(pos.add(vec2is(0, 1)))) 1 else 0;
                     context.renderer.fill_rect(
-                        grid_offset.x() + @intToFloat(f32, x) * self.scale,
-                        grid_offset.y() + @intToFloat(f32, y) * self.scale,
+                        grid_offset.x() + @intToFloat(f32, pos.x()) * self.scale,
+                        grid_offset.y() + @intToFloat(f32, pos.y()) * self.scale,
                         self.scale + x_epsilon,
                         self.scale + y_epsilon,
                     );
@@ -263,16 +263,16 @@ pub const Game = struct {
         }
 
         const highlight_cell_pos = self.cursor_pos_to_cell(self.cursor_pos);
-        if (self.grid.get(highlight_cell_pos.x(), highlight_cell_pos.y())) |cell| {
-            if (cell.*) {
+        if (self.grid.get_bounds_check(highlight_cell_pos)) |cell| {
+            if (cell) {
                 context.renderer.set_fill_style(.{ .Color = .{ .r = 0x77, .g = 0x77, .b = 0x77, .a = 0xFF } });
             } else {
                 context.renderer.set_fill_style(.{ .Color = .{ .r = 0xDD, .g = 0xDD, .b = 0xDD, .a = 0xFF } });
             }
             const draw_pos = highlight_cell_pos.intToFloat(f32).scalMul(self.scale).add(grid_offset);
-            const epsilon: f32 = if (cell.*) 1 else 0;
-            const x_epsilon: f32 = if (self.grid.is_alive(highlight_cell_pos.x()+1, highlight_cell_pos.y())) epsilon else 0;
-            const y_epsilon: f32 = if (self.grid.is_alive(highlight_cell_pos.x(), highlight_cell_pos.y()+1)) epsilon else 0;
+            const epsilon: f32 = if (cell) 1 else 0;
+            const x_epsilon: f32 = if (self.grid.get(highlight_cell_pos.add(vec2is(1, 0)))) epsilon else 0;
+            const y_epsilon: f32 = if (self.grid.get(highlight_cell_pos.add(vec2is(0, 1)))) epsilon else 0;
             context.renderer.fill_rect(draw_pos.x(), draw_pos.y(), self.scale + x_epsilon, self.scale + y_epsilon);
         }
 
