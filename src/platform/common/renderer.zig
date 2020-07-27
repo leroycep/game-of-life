@@ -10,9 +10,17 @@ pub const TextAlign = enum(u8) {
     Center = 2,
 };
 
+pub const TextBaseline = enum {
+    //Alphabetic,
+    Top,
+    //Hanging,
+    Middle,
+    //Ideographic,
+    Bottom,
+};
+
 pub const LineCap = enum(u8) {
     butt = 0,
     round = 1,
     square = 2,
 };
-

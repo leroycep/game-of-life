@@ -42,6 +42,7 @@ const js_top =
     \\    const canvas = canvas_element.getContext('2d');
     \\
     \\    const textAlignMap = ["left", "right", "center"];
+    \\    const textBaselineMap = ["top", "hanging", "middle", "alphabetic", "ideographic", "bottom"];
     \\    const lineCapMap = ["butt", "round", "square"];
     \\    const cursorStyleMap = ["default", "move", "grabbing"];
 ;
@@ -130,6 +131,15 @@ const funcs = [_]Func{
         .ret = "void",
         .js =
             \\canvas.textAlign = textAlignMap[text_align];
+            },
+    Func{
+        .name = "canvas_setTextBaseline",
+        .args = &[_]Arg{
+            .{ .name = "text_baseline", .type = "u8" },
+        },
+        .ret = "void",
+        .js =
+            \\canvas.textBaseline = textBaselineMap[text_baseline];
             },
     Func{
         .name = "canvas_setLineCap",

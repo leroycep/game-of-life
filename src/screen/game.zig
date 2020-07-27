@@ -2,9 +2,10 @@ const std = @import("std");
 const screen = @import("../screen.zig");
 const Screen = screen.Screen;
 const platform = @import("../platform.zig");
-const components = platform.components;
+const gui = platform.gui;
 const Vec = platform.Vec;
 const Vec2f = platform.Vec2f;
+const vec2f = platform.vec2f;
 const Vec2i = platform.Vec2i;
 const vec2us = platform.vec2us;
 const vec2is = platform.vec2is;
@@ -19,6 +20,8 @@ const CELL_WIDTH = 16;
 const CELL_HEIGHT = 16;
 const MIN_SCALE = 8;
 const MAX_SCALE = 1024;
+
+const TEXT_PRESS_RIGHT = "Press → to advance one step";
 
 pub const Game = struct {
     alloc: *std.mem.Allocator,
@@ -36,6 +39,8 @@ pub const Game = struct {
     cursor_pos: Vec2f = Vec2f.init(0, 0),
     scale: f32 = 16.0,
     screen_size: Vec2f = Vec2f.init(0, 0),
+
+    press_right_text: *gui.Label,
 
     ticks_per_step: f32 = 10,
     ticks_since_last_step: f32 = 0,
@@ -61,12 +66,17 @@ pub const Game = struct {
             .start_cell = vec2is(-1, -1),
             .prev_cell = vec2is(-1, -1),
             .grid = grid,
+            .press_right_text = undefined,
         };
         return self;
     }
 
     pub fn start(screenPtr: *Screen, context: *Context) void {
         const self = @fieldParentPtr(@This(), "screen", screenPtr);
+
+        self.press_right_text = gui.Label.init(context, TEXT_PRESS_RIGHT) catch unreachable;
+        self.press_right_text.text_align = .Right;
+        self.press_right_text.text_baseline = .Bottom;
     }
 
     pub fn onEvent(screenPtr: *Screen, context: *Context, event: platform.Event) void {
@@ -292,8 +302,7 @@ pub const Game = struct {
             context.renderer.fill_text(text, 20, self.screen_size.y() - 40);
         }
 
-        context.renderer.set_text_align(.Right);
-        context.renderer.fill_text("Press → to advance one step", self.screen_size.x() - 20, self.screen_size.y() - 20);
+        self.press_right_text.element.render(context, platform.Rect(f32).initPosAndSize(vec2f(0, 0), self.screen_size), alpha);
 
         if (self.paused) {
             context.renderer.set_text_align(.Center);

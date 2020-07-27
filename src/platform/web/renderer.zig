@@ -3,6 +3,7 @@ const common = @import("../common/common.zig");
 const FillStyle = common.renderer.FillStyle;
 const LineCap = common.renderer.LineCap;
 const TextAlign = common.renderer.TextAlign;
+const TextBaseline = common.renderer.TextBaseline;
 
 pub const Renderer = struct {
     pub fn init() @This() {
@@ -32,6 +33,14 @@ pub const Renderer = struct {
 
     pub fn set_text_align(self: *@This(), text_align: TextAlign) void {
         web.canvas_setTextAlign(@enumToInt(text_align));
+    }
+
+    pub fn set_text_baseline(self: *@This(), text_align: TextBaseline) void {
+        web.canvas_setTextBaseline(switch (text_align) {
+            .Top => 0,
+            .Middle => 2,
+            .Bottom => 5,
+        });
     }
 
     pub fn fill_text(self: *@This(), text: []const u8, x: f32, y: f32) void {
