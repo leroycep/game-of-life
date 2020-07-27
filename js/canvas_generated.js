@@ -23,6 +23,7 @@ export default function getWebGLEnv(canvas_element, getMemory) {
     const canvas = canvas_element.getContext('2d');
 
     const textAlignMap = ["left", "right", "center"];
+    const textBaselineMap = ["top", "hanging", "middle", "alphabetic", "ideographic", "bottom"];
     const lineCapMap = ["butt", "round", "square"];
     const cursorStyleMap = ["default", "move", "grabbing"];
     return {
@@ -49,6 +50,9 @@ export default function getWebGLEnv(canvas_element, getMemory) {
         },
         canvas_setTextAlign(text_align) {
             canvas.textAlign = textAlignMap[text_align];
+        },
+        canvas_setTextBaseline(text_baseline) {
+            canvas.textBaseline = textBaselineMap[text_baseline];
         },
         canvas_setLineCap(line_cap) {
             canvas.lineCap = lineCapMap[line_cap];
