@@ -40,7 +40,9 @@ pub const Game = struct {
     scale: f32 = 16.0,
     screen_size: Vec2f = Vec2f.init(0, 0),
 
+    flex: *gui.Flexbox,
     press_right_text: *gui.Label,
+    generation_text: *gui.Label,
 
     ticks_per_step: f32 = 10,
     ticks_since_last_step: f32 = 0,
@@ -67,6 +69,8 @@ pub const Game = struct {
             .prev_cell = vec2is(-1, -1),
             .grid = grid,
             .press_right_text = undefined,
+            .generation_text = undefined,
+            .flex = undefined,
         };
         return self;
     }
@@ -74,9 +78,18 @@ pub const Game = struct {
     pub fn start(screenPtr: *Screen, context: *Context) void {
         const self = @fieldParentPtr(@This(), "screen", screenPtr);
 
+        self.generation_text = gui.Label.init(context, "Generation #1337") catch unreachable;
+        self.generation_text.text_align = .Left;
+        self.generation_text.text_baseline = .Bottom;
+
         self.press_right_text = gui.Label.init(context, TEXT_PRESS_RIGHT) catch unreachable;
         self.press_right_text.text_align = .Right;
         self.press_right_text.text_baseline = .Bottom;
+
+        self.flex = gui.Flexbox.init(context) catch unreachable;
+        self.flex.cross_align = .End;
+        self.flex.children.append(&self.generation_text.element) catch unreachable;
+        self.flex.children.append(&self.press_right_text.element) catch unreachable;
     }
 
     pub fn onEvent(screenPtr: *Screen, context: *Context, event: platform.Event) void {
@@ -287,22 +300,20 @@ pub const Game = struct {
             context.renderer.fill_rect(draw_pos.x(), draw_pos.y(), self.scale + x_epsilon, self.scale + y_epsilon);
         }
 
-        context.renderer.set_fill_style(.{ .Color = .{ .r = 100, .g = 100, .b = 100, .a = 255 } });
-        var buf: [100]u8 = undefined;
-
         {
-            const text = std.fmt.bufPrint(&buf, "Generation #{}", .{self.grid.generation}) catch return;
-            context.renderer.set_text_align(.Left);
-            context.renderer.fill_text(text, 20, self.screen_size.y() - 20);
+            context.alloc.free(self.generation_text.text);
+            self.generation_text.text = std.fmt.allocPrint(context.alloc, "Generation #{}", .{self.grid.generation}) catch return;
         }
 
+        context.renderer.set_fill_style(.{ .Color = .{ .r = 100, .g = 100, .b = 100, .a = 255 } });
+        var buf: [100]u8 = undefined;
         {
             const text = std.fmt.bufPrint(&buf, "Ticks Per Step: {d}, Ticks: {d}", .{ self.ticks_per_step, self.ticks_since_last_step }) catch return;
             context.renderer.set_text_align(.Left);
             context.renderer.fill_text(text, 20, self.screen_size.y() - 40);
         }
 
-        self.press_right_text.element.render(context, platform.Rect(f32).initPosAndSize(vec2f(0, 0), self.screen_size), alpha);
+        self.flex.element.render(context, platform.Rect(f32).initPosAndSize(vec2f(0, 0), self.screen_size), alpha);
 
         if (self.paused) {
             context.renderer.set_text_align(.Center);

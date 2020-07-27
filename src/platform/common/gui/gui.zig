@@ -6,6 +6,7 @@ const Rect = platform.Rect;
 const vec2f = platform.vec2f;
 
 pub const Label = @import("./label.zig").Label;
+pub const Flexbox = @import("./flexbox.zig").Flexbox;
 
 // A dummy type to use with fieldParentPtr
 pub const Props = usize;

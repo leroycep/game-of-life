@@ -8,15 +8,19 @@ pub fn Rect(comptime T: type) type {
 
         const Self = @This();
 
-        pub fn initPosAndSize(pos: Vec(2, T), size: Vec(2, T)) @This() {
+        pub fn initPosAndSize(pos: Vec(2, T), sizev: Vec(2, T)) @This() {
             return .{
                 .min = pos,
-                .max = pos.add(size),
+                .max = pos.add(sizev),
             };
         }
 
         pub fn center(self: @This()) Vec(2, T) {
             return self.min.add(self.max).scalMul(0.5);
+        }
+
+        pub fn size(self: @This()) Vec(2, T) {
+            return self.max.sub(self.min);
         }
 
         pub fn intToFloat(self: @This(), comptime F: type) Rect(F) {
