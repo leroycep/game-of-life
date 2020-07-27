@@ -45,6 +45,7 @@ pub const Game = struct {
         const self = try alloc.create(@This());
         const grid = try GridOfLife.init(alloc, .{
             .size = vec2us(DEFAULT_GRID_WIDTH, DEFAULT_GRID_HEIGHT),
+            .edge_behaviour = .Dead,
         });
         self.* = .{
             .alloc = alloc,

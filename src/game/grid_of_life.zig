@@ -9,6 +9,9 @@ pub const GridOptions = struct {
     edge_behaviour: enum {
         /// Positions will wrap around to the other side of the board
         Wrapping,
+
+        /// Positions outside the board will be treated as dead
+        Dead,
     } = .Wrapping,
 };
 
@@ -43,6 +46,7 @@ pub const GridOfLife = struct {
     pub fn get(self: @This(), pos: Vec(2, isize)) bool {
         const i = switch (self.options.edge_behaviour) {
             .Wrapping => self.idx_wrapping(pos),
+            .Dead => self.idx(pos) orelse return false,
         };
         return self.cells[i];
     }
@@ -51,6 +55,7 @@ pub const GridOfLife = struct {
     pub fn set(self: @This(), pos: Vec(2, isize), value: bool) void {
         const i = switch (self.options.edge_behaviour) {
             .Wrapping => self.idx_wrapping(pos),
+            .Dead => self.idx(pos) orelse return,
         };
         self.cells[i] = value;
     }
