@@ -200,7 +200,7 @@ pub const Game = struct {
         }
 
         if (!self.paused or self.step_once) {
-            if (self.ticks_since_last_step > self.ticks_per_step) {
+            if (self.ticks_since_last_step > self.ticks_per_step or self.step_once) {
                 self.grid.step();
                 self.step_once = false;
                 self.ticks_since_last_step = 0;
