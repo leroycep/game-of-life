@@ -144,12 +144,14 @@ pub const Game = struct {
             self.x_size_input.fill_style = .{ .Color = constants.TEXT_COLOR };
         } else |err| {
             self.x_size_input.fill_style = .{ .Color = constants.INVALID_TEXT_COLOR };
+            was_err = true;
         }
         if (y_size_err) |y_size| {
             size.v[1] = y_size;
             self.y_size_input.fill_style = .{ .Color = constants.TEXT_COLOR };
         } else |err| {
             self.y_size_input.fill_style = .{ .Color = constants.INVALID_TEXT_COLOR };
+            was_err = true;
         }
 
         if (!was_err) {
