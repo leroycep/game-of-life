@@ -286,18 +286,20 @@ pub const Game = struct {
             }
         }
 
-        const highlight_cell_pos = self.cursor_pos_to_cell(self.cursor_pos);
-        if (self.grid.get_bounds_check(highlight_cell_pos)) |cell| {
-            if (cell) {
-                context.renderer.set_fill_style(.{ .Color = .{ .r = 0x77, .g = 0x77, .b = 0x77, .a = 0xFF } });
-            } else {
-                context.renderer.set_fill_style(.{ .Color = .{ .r = 0xDD, .g = 0xDD, .b = 0xDD, .a = 0xFF } });
+        if (self.paused) {
+            const highlight_cell_pos = self.cursor_pos_to_cell(self.cursor_pos);
+            if (self.grid.get_bounds_check(highlight_cell_pos)) |cell| {
+                if (cell) {
+                    context.renderer.set_fill_style(.{ .Color = .{ .r = 0x77, .g = 0x77, .b = 0x77, .a = 0xFF } });
+                } else {
+                    context.renderer.set_fill_style(.{ .Color = .{ .r = 0xDD, .g = 0xDD, .b = 0xDD, .a = 0xFF } });
+                }
+                const draw_pos = highlight_cell_pos.intToFloat(f32).scalMul(self.scale).add(grid_offset);
+                const epsilon: f32 = if (cell) 1 else 0;
+                const x_epsilon: f32 = if (self.grid.get(highlight_cell_pos.add(vec2is(1, 0)))) epsilon else 0;
+                const y_epsilon: f32 = if (self.grid.get(highlight_cell_pos.add(vec2is(0, 1)))) epsilon else 0;
+                context.renderer.fill_rect(draw_pos.x(), draw_pos.y(), self.scale + x_epsilon, self.scale + y_epsilon);
             }
-            const draw_pos = highlight_cell_pos.intToFloat(f32).scalMul(self.scale).add(grid_offset);
-            const epsilon: f32 = if (cell) 1 else 0;
-            const x_epsilon: f32 = if (self.grid.get(highlight_cell_pos.add(vec2is(1, 0)))) epsilon else 0;
-            const y_epsilon: f32 = if (self.grid.get(highlight_cell_pos.add(vec2is(0, 1)))) epsilon else 0;
-            context.renderer.fill_rect(draw_pos.x(), draw_pos.y(), self.scale + x_epsilon, self.scale + y_epsilon);
         }
 
         {
