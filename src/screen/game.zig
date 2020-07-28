@@ -96,10 +96,15 @@ pub const Game = struct {
         const y_size_input = gui.TextInput.init(&self.gui) catch unreachable;
         y_size_input.text.outStream().print("{}", .{self.grid.options.size.y()}) catch unreachable;
 
+        const resize_button_label = gui.Label.init(&self.gui, "Resize") catch unreachable;
+        const resize_button = gui.Button.init(&self.gui, &resize_button_label.element) catch unreachable;
+        resize_button.onclick = resize_clicked;
+
         const size_input_flex = gui.Flexbox.init(&self.gui) catch unreachable;
         size_input_flex.direction = .Col;
         size_input_flex.addChild(&x_size_input.element) catch unreachable;
         size_input_flex.addChild(&y_size_input.element) catch unreachable;
+        size_input_flex.addChild(&resize_button.element) catch unreachable;
 
         const flex = gui.Flexbox.init(&self.gui) catch unreachable;
         flex.cross_align = .End;
@@ -109,6 +114,10 @@ pub const Game = struct {
         flex.addChild(&press_right_text.element) catch unreachable;
 
         self.gui.root = &flex.element;
+    }
+
+    fn resize_clicked(button: *gui.Button, userdata: ?usize) void {
+        platform.warn("Resize button clicked!", .{});
     }
 
     pub fn onEvent(screenPtr: *Screen, context: *Context, event: platform.Event) void {
