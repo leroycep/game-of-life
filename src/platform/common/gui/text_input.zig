@@ -56,9 +56,22 @@ pub const TextInput = struct {
                 gui.focused = &self.element;
                 return true;
             },
+            .KeyDown => |scancode| if (scancode == .BACKSPACE) {
+                self.pop_utf8_codepoint();
+            },
+            .TextInput => |text| {
+                self.text.appendSlice(text) catch {};
+            },
             else => {},
         }
         return false;
+    }
+
+    fn pop_utf8_codepoint(self: *@This()) void {
+        if (self.text.items.len == 0) return;
+        var new_len = self.text.items.len - 1;
+        while (new_len > 0 and !is_leading_utf8_byte(self.text.items[new_len])) : (new_len -= 1) {}
+        self.text.shrink(new_len);
     }
 
     pub fn minimumSize(element: *Element, gui: *Gui) Vec2f {
@@ -94,3 +107,9 @@ pub const TextInput = struct {
         gui.renderer.stroke_rect(rect.min.x(), rect.min.y(), rect.size().x(), rect.size().y());
     }
 };
+
+fn is_leading_utf8_byte(c: u8) bool {
+    const first_bit_set = (c & 0x80) != 0;
+    const second_bit_set = (c & 0x40) != 0;
+    return !first_bit_set or second_bit_set;
+}

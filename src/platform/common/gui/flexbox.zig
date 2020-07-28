@@ -86,7 +86,7 @@ pub const Flexbox = struct {
     pub fn onEvent(element: *Element, gui: *Gui, event: Event) bool {
         const self = @fieldParentPtr(@This(), "element", element);
         switch (event) {
-            .MouseEnter => return false,
+            .MouseEnter, .TextInput, .KeyDown => return false,
             .MouseLeave => |ev| {
                 if (self.prev_child_over) |prev| {
                     _ = prev.element.onEvent(gui, .{ .MouseLeave = ev });

@@ -72,7 +72,7 @@ pub const Event = union(enum) {
     KeyDown: KeyEvent,
     KeyUp: KeyEvent,
     TextEditing: void,
-    TextInput: void,
+    TextInput: TextInput,
 
     MouseMotion: MouseMoveEvent,
     MouseButtonDown: MouseButtonEvent,
@@ -83,7 +83,14 @@ pub const Event = union(enum) {
 };
 
 pub const KeyEvent = struct {
+    key: Scancode,
     scancode: Scancode,
+};
+
+pub const TextInput = struct {
+    // The backing buffer for text
+    _buf: [32]u8,
+    text: []const u8,
 };
 
 pub const MouseButton = enum(u8) {

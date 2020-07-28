@@ -4,6 +4,7 @@ const platform = @import("platform.zig");
 const std = @import("std");
 const Vec2i = platform.Vec2i;
 
+export const SCANCODE_UNKNOWN = @enumToInt(platform.Scancode.UNKNOWN);
 export const SCANCODE_ESCAPE = @enumToInt(platform.Scancode.ESCAPE);
 export const SCANCODE_W = @enumToInt(platform.Scancode.W);
 export const SCANCODE_A = @enumToInt(platform.Scancode.A);
@@ -15,6 +16,7 @@ export const SCANCODE_RIGHT = @enumToInt(platform.Scancode.RIGHT);
 export const SCANCODE_UP = @enumToInt(platform.Scancode.UP);
 export const SCANCODE_DOWN = @enumToInt(platform.Scancode.DOWN);
 export const SCANCODE_SPACE = @enumToInt(platform.Scancode.SPACE);
+export const SCANCODE_BACKSPACE = @enumToInt(platform.Scancode.BACKSPACE);
 
 export const MOUSE_BUTTON_LEFT = @enumToInt(platform.MouseButton.Left);
 export const MOUSE_BUTTON_MIDDLE = @enumToInt(platform.MouseButton.Middle);
@@ -33,7 +35,6 @@ export const TextMetrics_OFFSET_actualBoundingBoxAscent: usize = @byteOffsetOf(T
 export const TextMetrics_OFFSET_actualBoundingBoxDescent: usize = @byteOffsetOf(TextMetrics, "actualBoundingBoxDescent");
 export const TextMetrics_OFFSET_actualBoundingBoxLeft: usize = @byteOffsetOf(TextMetrics, "actualBoundingBoxLeft");
 export const TextMetrics_OFFSET_actualBoundingBoxRight: usize = @byteOffsetOf(TextMetrics, "actualBoundingBoxRight");
-
 
 var context: platform.Context = undefined;
 
@@ -70,18 +71,32 @@ export fn onMouseWheel(x: i32, y: i32) void {
     });
 }
 
-export fn onKeyDown(scancode: u16) void {
+export fn onKeyDown(key: u16, scancode: u16) void {
+    platform.warn("key, scan: {}, {}", .{ key, scancode });
     app.onEvent(&context, .{
         .KeyDown = .{
+            .key = @intToEnum(platform.Scancode, key),
             .scancode = @intToEnum(platform.Scancode, scancode),
         },
     });
 }
 
-export fn onKeyUp(scancode: u16) void {
+export fn onKeyUp(key: u16, scancode: u16) void {
+    platform.warn("key, scan: {}, {}", .{ key, scancode });
     app.onEvent(&context, .{
         .KeyUp = .{
+            .key = @intToEnum(platform.Scancode, key),
             .scancode = @intToEnum(platform.Scancode, scancode),
+        },
+    });
+}
+
+export const TEXT_INPUT_BUFFER: [32]u8 = undefined;
+export fn onTextInput(len: u8) void {
+    app.onEvent(&context, .{
+        .TextInput = .{
+            ._buf = TEXT_INPUT_BUFFER,
+            .text = TEXT_INPUT_BUFFER[0..len],
         },
     });
 }
