@@ -1,4 +1,5 @@
-export default function getWebGLEnv(canvas_element, getMemory) {
+export default function getWebGLEnv(canvas_element, getInstance) {
+    const getMemory = () => getInstance().exports.memory;
     const utf8decoder = new TextDecoder();
     const readCharStr = (ptr, len) =>
         utf8decoder.decode(new Uint8Array(getMemory().buffer, ptr, len));
@@ -19,6 +20,22 @@ export default function getWebGLEnv(canvas_element, getMemory) {
             new Uint32Array(getMemory().buffer, lenRetPtr, 1)[0] = zigidx;
         }
     }
+
+    const readU32Const = (ptr) => new Uint32Array(getMemory().buffer, ptr, 1)[0];
+
+    let wasmTextMetricsMap;
+    const getWasmTextMetricsMap = () => {
+        if (wasmTextMetricsMap) return wasmTextMetricsMap;
+        wasmTextMetricsMap = {
+            _size: readU32Const(getInstance().exports.TextMetrics_SIZE),
+            width: readU32Const(getInstance().exports.TextMetrics_OFFSET_width),
+            actualBoundingBoxAscent: readU32Const(getInstance().exports.TextMetrics_OFFSET_actualBoundingBoxAscent),
+            actualBoundingBoxDescent: readU32Const(getInstance().exports.TextMetrics_OFFSET_actualBoundingBoxDescent),
+            actualBoundingBoxLeft: readU32Const(getInstance().exports.TextMetrics_OFFSET_actualBoundingBoxLeft),
+            actualBoundingBoxRight: readU32Const(getInstance().exports.TextMetrics_OFFSET_actualBoundingBoxRight),
+        }
+        return wasmTextMetricsMap;
+    };
 
     const canvas = canvas_element.getContext('2d');
 
@@ -79,6 +96,17 @@ export default function getWebGLEnv(canvas_element, getMemory) {
         },
         canvas_stroke() {
             canvas.stroke();
+        },
+        canvas_measureText_(text_ptr, text_len, metricsOut) {
+            const text = readCharStr(text_ptr, text_len);
+            const metrics = canvas.measureText(text);
+            const metrics_map = getWasmTextMetricsMap();
+            const metrics_wasm = new Float64Array(getMemory().buffer, metricsOut, metrics_map._size / 8);
+            metrics_wasm[metrics_map.width / 8] = metrics.width;
+            metrics_wasm[metrics_map.actualBoundingBoxAscent / 8] = metrics.actualBoundingBoxAscent;
+            metrics_wasm[metrics_map.actualBoundingBoxDescent / 8] = metrics.actualBoundingBoxDescent;
+            metrics_wasm[metrics_map.actualBoundingBoxLeft / 8] = metrics.actualBoundingBoxLeft;
+            metrics_wasm[metrics_map.actualBoundingBoxRight / 8] = metrics.actualBoundingBoxRight;
         },
     };
 }
