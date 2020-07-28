@@ -8,6 +8,7 @@ const vec2f = platform.vec2f;
 
 pub const Label = @import("./label.zig").Label;
 pub const Flexbox = @import("./flexbox.zig").Flexbox;
+pub const TextInput = @import("./text_input.zig").TextInput;
 
 // A dummy type to use with fieldParentPtr
 pub const Props = usize;

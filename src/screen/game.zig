@@ -90,9 +90,21 @@ pub const Game = struct {
         press_right_text.text_align = .Right;
         press_right_text.text_baseline = .Middle;
 
+        // Set up size text inputs
+        const x_size_input = gui.TextInput.init(context) catch unreachable;
+        x_size_input.text.outStream().print("{}", .{self.grid.options.size.x()}) catch unreachable;
+        const y_size_input = gui.TextInput.init(context) catch unreachable;
+        y_size_input.text.outStream().print("{}", .{self.grid.options.size.y()}) catch unreachable;
+
+        const size_input_flex = gui.Flexbox.init(context) catch unreachable;
+        size_input_flex.direction = .Col;
+        size_input_flex.addChild(&x_size_input.element) catch unreachable;
+        size_input_flex.addChild(&y_size_input.element) catch unreachable;
+
         self.flex = gui.Flexbox.init(context) catch unreachable;
         self.flex.cross_align = .End;
         self.flex.addChild(&self.generation_text.element) catch unreachable;
+        self.flex.addChild(&size_input_flex.element) catch unreachable;
         self.flex.addChild(&self.paused_text.element) catch unreachable;
         self.flex.addChild(&press_right_text.element) catch unreachable;
     }

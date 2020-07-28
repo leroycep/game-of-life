@@ -117,6 +117,18 @@ const funcs = [_]Func{
             \\canvas.fillRect(x,y,width,height);
             },
     Func{
+        .name = "canvas_strokeRect",
+        .args = &[_]Arg{
+            .{ .name = "x", .type = "f32" },
+            .{ .name = "y", .type = "f32" },
+            .{ .name = "width", .type = "f32" },
+            .{ .name = "height", .type = "f32" },
+        },
+        .ret = "void",
+        .js =
+            \\canvas.strokeRect(x,y,width,height);
+            },
+    Func{
         .name = "canvas_setFillStyle_rgba",
         .args = &[_]Arg{
             .{ .name = "r", .type = "u8" },

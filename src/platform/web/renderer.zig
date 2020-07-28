@@ -32,6 +32,10 @@ pub const Renderer = struct {
         web.canvas_fillRect(x, y, width, height);
     }
 
+    pub fn stroke_rect(self: *@This(), x: f32, y: f32, width: f32, height: f32) void {
+        web.canvas_strokeRect(x, y, width, height);
+    }
+
     pub fn set_text_align(self: *@This(), text_align: TextAlign) void {
         web.canvas_setTextAlign(@enumToInt(text_align));
     }
