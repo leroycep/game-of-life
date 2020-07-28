@@ -125,6 +125,28 @@ pub fn Vec(comptime S: usize, comptime T: type) type {
             return res;
         }
 
+        pub fn maxComponents(self: @This(), other: @This()) @This() {
+            var res: @This() = undefined;
+
+            comptime var i = 0;
+            inline while (i < S) : (i += 1) {
+                res.v[i] = std.math.max(self.v[i], other.v[i]);
+            }
+
+            return res;
+        }
+
+        pub fn minComponents(self: @This(), other: @This()) @This() {
+            var res: @This() = undefined;
+
+            comptime var i = 0;
+            inline while (i < S) : (i += 1) {
+                res.v[i] = std.math.min(self.v[i], other.v[i]);
+            }
+
+            return res;
+        }
+
         pub fn magnitude(self: @This()) T {
             var sum: T = 0;
             comptime var i = 0;
