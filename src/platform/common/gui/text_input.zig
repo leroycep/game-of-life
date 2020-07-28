@@ -82,7 +82,7 @@ pub const TextInput = struct {
             .Bottom => rect.max.y(),
         };
 
-        if (self.mouse_over) {
+        if (self.mouse_over or gui.focused == &self.element) {
             gui.renderer.set_fill_style(.{ .Color = Color.from_u32(0x777777FF) });
             gui.renderer.fill_rect(rect.min.x(), rect.min.y(), rect.size().x(), rect.size().y());
         }
