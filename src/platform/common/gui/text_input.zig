@@ -5,7 +5,8 @@ const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 const Element = platform.gui.Element;
 const Context = platform.Context;
-const Event = platform.Event;
+const Event = platform.gui.Event;
+const Color = platform.Color;
 const Vec2f = platform.Vec2f;
 const Rect = platform.Rect;
 const FillStyle = platform.renderer.FillStyle;
@@ -20,6 +21,7 @@ pub const TextInput = struct {
     text_align: TextAlign = .Center,
     text_baseline: TextBaseline = .Middle,
     width: f32 = 50,
+    mouse_over: bool = false,
 
     pub fn init(context: *Context) !*@This() {
         const self = try context.alloc.create(@This());
@@ -45,6 +47,15 @@ pub const TextInput = struct {
     }
 
     pub fn onEvent(element: *Element, context: *Context, event: Event) bool {
+        const self = @fieldParentPtr(@This(), "element", element);
+        switch (event) {
+            .MouseOver => |ev| {
+                return true;
+            },
+            .MouseEnter => |ev| self.mouse_over = true,
+            .MouseLeave => |ev| self.mouse_over = false,
+            else => {},
+        }
         return false;
     }
 
@@ -69,12 +80,14 @@ pub const TextInput = struct {
             .Bottom => rect.max.y(),
         };
 
+        if (self.mouse_over) {
+            context.renderer.set_fill_style(.{ .Color = Color.from_u32(0x777777FF) });
+            context.renderer.fill_rect(rect.min.x(), rect.min.y(), rect.size().x(), rect.size().y());
+        }
+
         context.renderer.set_fill_style(self.fill_style);
         context.renderer.set_text_align(self.text_align);
         context.renderer.set_text_baseline(self.text_baseline);
-
-        const metrics = context.renderer.measure_text(self.text.items);
-
         context.renderer.fill_text(self.text.items, pos_x, pos_y);
         context.renderer.stroke_rect(rect.min.x(), rect.min.y(), rect.size().x(), rect.size().y());
     }

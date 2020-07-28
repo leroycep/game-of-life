@@ -23,6 +23,10 @@ pub fn Rect(comptime T: type) type {
             return self.max.sub(self.min);
         }
 
+        pub fn contains(self: @This(), point: Vec(2, T)) bool {
+            return point.x() >= self.min.x() and point.x() <= self.max.x() and point.y() >= self.min.y() and point.y() <= self.max.y();
+        }
+
         pub fn intToFloat(self: @This(), comptime F: type) Rect(F) {
             return .{
                 .min = self.min.intToFloat(F),

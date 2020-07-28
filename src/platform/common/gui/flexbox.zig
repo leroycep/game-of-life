@@ -5,7 +5,7 @@ const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 const Element = platform.gui.Element;
 const Context = platform.Context;
-const Event = platform.Event;
+const Event = platform.gui.Event;
 const Rect = platform.Rect;
 const Vec2f = platform.Vec2f;
 const FillStyle = platform.renderer.FillStyle;
@@ -16,6 +16,7 @@ pub const Flexbox = struct {
     element: Element,
     alloc: *Allocator,
     children: ArrayList(Child),
+    prev_element_mouse_over: ?*Element = null,
 
     // The direction of the elements
     direction: Direction = .Row,
@@ -44,6 +45,7 @@ pub const Flexbox = struct {
     const Child = struct {
         element: *Element,
         min_size: Vec2f,
+        rect: Rect(f32),
     };
 
     pub fn init(context: *Context) !*@This() {
@@ -77,11 +79,41 @@ pub const Flexbox = struct {
         try self.children.append(.{
             .element = child_element,
             .min_size = Vec2f.init(0, 0),
+            .rect = Rect(f32).initPosAndSize(Vec2f.init(0, 0), Vec2f.init(0, 0)),
         });
     }
 
     pub fn onEvent(element: *Element, context: *Context, event: Event) bool {
-        return false;
+        const self = @fieldParentPtr(@This(), "element", element);
+        switch (event) {
+            .MouseLeave => |ev| {
+                if (self.prev_element_mouse_over) |prev| {
+                    _ = prev.onEvent(context, .{ .MouseLeave = ev });
+                    self.prev_element_mouse_over = null;
+                }
+                return false;
+            },
+            .MouseOver => |ev| {
+                for (self.children.items) |child| {
+                    if (child.rect.contains(ev.pos)) {
+                        if (!std.meta.eql(self.prev_element_mouse_over, child.element)) {
+                            if (self.prev_element_mouse_over) |prev| {
+                                _ = prev.onEvent(context, .{ .MouseLeave = ev });
+                            }
+                            _ = child.element.onEvent(context, .{ .MouseEnter = ev });
+                        }
+                        self.prev_element_mouse_over = child.element;
+                        return child.element.onEvent(context, event);
+                    }
+                }
+                if (self.prev_element_mouse_over) |prev| {
+                    _ = prev.onEvent(context, .{ .MouseLeave = ev });
+                    self.prev_element_mouse_over = null;
+                }
+                return false;
+            },
+            else => return false,
+        }
     }
 
     pub fn minimumSize(element: *Element, context: *Context) Vec2f {
@@ -150,12 +182,12 @@ pub const Flexbox = struct {
             .End => rect.max.v[cross_axis] - cross_min_width,
         };
 
-        for (self.children.items) |child| {
+        for (self.children.items) |*child| {
             var size = child.min_size;
             size.v[cross_axis] = cross_min_width;
 
-            const child_rect = Rect(f32).initPosAndSize(pos, size);
-            child.element.render(context, child_rect, alpha);
+            child.rect = Rect(f32).initPosAndSize(pos, size);
+            child.element.render(context, child.rect, alpha);
 
             pos.v[main_axis] += child.min_size.v[main_axis] + space_between;
         }

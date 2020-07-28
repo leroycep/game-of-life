@@ -40,7 +40,7 @@ pub const Game = struct {
     scale: f32 = 16.0,
     screen_size: Vec2f = Vec2f.init(0, 0),
 
-    flex: *gui.Flexbox,
+    gui: gui.Gui,
     paused_text: *gui.Label,
     generation_text: *gui.Label,
 
@@ -70,7 +70,7 @@ pub const Game = struct {
             .grid = grid,
             .paused_text = undefined,
             .generation_text = undefined,
-            .flex = undefined,
+            .gui = gui.Gui.init(),
         };
         return self;
     }
@@ -101,16 +101,22 @@ pub const Game = struct {
         size_input_flex.addChild(&x_size_input.element) catch unreachable;
         size_input_flex.addChild(&y_size_input.element) catch unreachable;
 
-        self.flex = gui.Flexbox.init(context) catch unreachable;
-        self.flex.cross_align = .End;
-        self.flex.addChild(&self.generation_text.element) catch unreachable;
-        self.flex.addChild(&size_input_flex.element) catch unreachable;
-        self.flex.addChild(&self.paused_text.element) catch unreachable;
-        self.flex.addChild(&press_right_text.element) catch unreachable;
+        const flex = gui.Flexbox.init(context) catch unreachable;
+        flex.cross_align = .End;
+        flex.addChild(&self.generation_text.element) catch unreachable;
+        flex.addChild(&size_input_flex.element) catch unreachable;
+        flex.addChild(&self.paused_text.element) catch unreachable;
+        flex.addChild(&press_right_text.element) catch unreachable;
+
+        self.gui.root = &flex.element;
     }
 
     pub fn onEvent(screenPtr: *Screen, context: *Context, event: platform.Event) void {
         const self = @fieldParentPtr(@This(), "screen", screenPtr);
+        if (self.gui.onEvent(context, event)) {
+            // The event has been consumed by the UI
+            return;
+        }
         switch (event) {
             .Quit => platform.quit(),
             .KeyDown => |ev| switch (ev.scancode) {
@@ -334,7 +340,7 @@ pub const Game = struct {
             context.renderer.fill_text(text, 20, self.screen_size.y() - 40);
         }
 
-        self.flex.element.render(context, platform.Rect(f32).initPosAndSize(vec2f(0, 0), self.screen_size), alpha);
+        self.gui.render(context, alpha);
 
         context.renderer.flush();
     }
