@@ -41,7 +41,7 @@ pub const Game = struct {
     screen_size: Vec2f = Vec2f.init(0, 0),
 
     flex: *gui.Flexbox,
-    press_right_text: *gui.Label,
+    paused_text: *gui.Label,
     generation_text: *gui.Label,
 
     ticks_per_step: f32 = 10,
@@ -68,7 +68,7 @@ pub const Game = struct {
             .start_cell = vec2is(-1, -1),
             .prev_cell = vec2is(-1, -1),
             .grid = grid,
-            .press_right_text = undefined,
+            .paused_text = undefined,
             .generation_text = undefined,
             .flex = undefined,
         };
@@ -82,14 +82,19 @@ pub const Game = struct {
         self.generation_text.text_align = .Left;
         self.generation_text.text_baseline = .Middle;
 
-        self.press_right_text = gui.Label.init(context, TEXT_PRESS_RIGHT) catch unreachable;
-        self.press_right_text.text_align = .Right;
-        self.press_right_text.text_baseline = .Middle;
+        self.paused_text = gui.Label.init(context, "Paused") catch unreachable;
+        self.paused_text.text_align = .Center;
+        self.paused_text.text_baseline = .Middle;
+
+        const press_right_text = gui.Label.init(context, TEXT_PRESS_RIGHT) catch unreachable;
+        press_right_text.text_align = .Right;
+        press_right_text.text_baseline = .Middle;
 
         self.flex = gui.Flexbox.init(context) catch unreachable;
         self.flex.cross_align = .End;
         self.flex.addChild(&self.generation_text.element) catch unreachable;
-        self.flex.addChild(&self.press_right_text.element) catch unreachable;
+        self.flex.addChild(&self.paused_text.element) catch unreachable;
+        self.flex.addChild(&press_right_text.element) catch unreachable;
     }
 
     pub fn onEvent(screenPtr: *Screen, context: *Context, event: platform.Event) void {
@@ -98,7 +103,10 @@ pub const Game = struct {
             .Quit => platform.quit(),
             .KeyDown => |ev| switch (ev.scancode) {
                 .ESCAPE => self.quit_pressed = true,
-                .SPACE => self.paused = !self.paused,
+                .SPACE => {
+                    self.paused = !self.paused;
+                    self.paused_text.text = if (self.paused) "Paused" else "Running";
+                },
                 .RIGHT => self.step_once = true,
                 .UP => self.ticks_per_step += 1,
                 .DOWN => {
@@ -315,12 +323,6 @@ pub const Game = struct {
         }
 
         self.flex.element.render(context, platform.Rect(f32).initPosAndSize(vec2f(0, 0), self.screen_size), alpha);
-
-        if (self.paused) {
-            context.renderer.set_text_align(.Center);
-            context.renderer.fill_text("Paused", self.screen_size.x() / 2, self.screen_size.y() - 30);
-            context.renderer.fill_text("(Press Space to Resume)", self.screen_size.x() / 2, self.screen_size.y() - 15);
-        }
 
         context.renderer.flush();
     }

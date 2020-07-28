@@ -135,7 +135,7 @@ pub const Flexbox = struct {
             .SpaceBetween => 0,
         };
         const space_between = switch (self.justification) {
-            .SpaceBetween => (main_space_total - main_space_used) / std.math.min(num_items - 1, 1),
+            .SpaceBetween => (main_space_total - main_space_used) / std.math.max(num_items - 1, 1),
         };
         const space_after = switch (self.justification) {
             .SpaceBetween => 0,
