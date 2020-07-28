@@ -78,7 +78,7 @@ pub const Game = struct {
     pub fn start(screenPtr: *Screen, context: *Context) void {
         const self = @fieldParentPtr(@This(), "screen", screenPtr);
 
-        self.generation_text = gui.Label.init(context, "Generation #1337") catch unreachable;
+        self.generation_text = gui.Label.init(context, "Generation #0") catch unreachable;
         self.generation_text.text_align = .Left;
         self.generation_text.text_baseline = .Bottom;
 
@@ -217,6 +217,10 @@ pub const Game = struct {
                 self.grid.step();
                 self.step_once = false;
                 self.ticks_since_last_step = 0;
+
+                // Update generation text label
+                context.alloc.free(self.generation_text.text);
+                self.generation_text.text = std.fmt.allocPrint(context.alloc, "Generation #{}", .{self.grid.generation}) catch unreachable;
             }
             self.ticks_since_last_step += 1;
         }
@@ -300,11 +304,6 @@ pub const Game = struct {
                 const y_epsilon: f32 = if (self.grid.get(highlight_cell_pos.add(vec2is(0, 1)))) epsilon else 0;
                 context.renderer.fill_rect(draw_pos.x(), draw_pos.y(), self.scale + x_epsilon, self.scale + y_epsilon);
             }
-        }
-
-        {
-            context.alloc.free(self.generation_text.text);
-            self.generation_text.text = std.fmt.allocPrint(context.alloc, "Generation #{}", .{self.grid.generation}) catch return;
         }
 
         context.renderer.set_fill_style(.{ .Color = .{ .r = 100, .g = 100, .b = 100, .a = 255 } });
