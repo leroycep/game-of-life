@@ -15,6 +15,13 @@ pub fn Rect(comptime T: type) type {
             };
         }
 
+        pub fn initMinAndMax(min_v: Vec(2, T), max_v: Vec(2, T)) @This() {
+            return .{
+                .min = min_v,
+                .max = max_v,
+            };
+        }
+
         pub fn center(self: @This()) Vec(2, T) {
             return self.min.add(self.max).scalMul(0.5);
         }

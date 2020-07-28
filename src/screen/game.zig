@@ -46,6 +46,7 @@ pub const Game = struct {
     generation_text: *gui.Label,
     x_size_input: *gui.TextInput,
     y_size_input: *gui.TextInput,
+    wrapping_checkbox: *gui.Checkbox,
 
     ticks_per_step: f32 = 10,
     ticks_since_last_step: f32 = 0,
@@ -75,6 +76,7 @@ pub const Game = struct {
             .generation_text = undefined,
             .x_size_input = undefined,
             .y_size_input = undefined,
+            .wrapping_checkbox = undefined,
             .gui = gui.Gui.init(alloc),
         };
         return self;
@@ -101,6 +103,11 @@ pub const Game = struct {
         self.y_size_input = gui.TextInput.init(&self.gui) catch unreachable;
         self.y_size_input.text.outStream().print("{}", .{self.grid.options.size.y()}) catch unreachable;
 
+        const wrapping_checkbox_label = gui.Label.init(&self.gui, "Wrapping") catch unreachable;
+        self.wrapping_checkbox = gui.Checkbox.init(&self.gui, &wrapping_checkbox_label.element) catch unreachable;
+        self.wrapping_checkbox.onchange = wrapping_changed;
+        self.wrapping_checkbox.userdata = @ptrToInt(self);
+
         const resize_button_label = gui.Label.init(&self.gui, "Resize") catch unreachable;
         const resize_button = gui.Button.init(&self.gui, &resize_button_label.element) catch unreachable;
         resize_button.onclick = resize_clicked;
@@ -110,12 +117,13 @@ pub const Game = struct {
         size_input_flex.direction = .Col;
         size_input_flex.addChild(&self.x_size_input.element) catch unreachable;
         size_input_flex.addChild(&self.y_size_input.element) catch unreachable;
-        size_input_flex.addChild(&resize_button.element) catch unreachable;
 
         const flex = gui.Flexbox.init(&self.gui) catch unreachable;
         flex.cross_align = .End;
         flex.addChild(&self.generation_text.element) catch unreachable;
         flex.addChild(&size_input_flex.element) catch unreachable;
+        flex.addChild(&self.wrapping_checkbox.element) catch unreachable;
+        flex.addChild(&resize_button.element) catch unreachable;
         flex.addChild(&self.paused_text.element) catch unreachable;
         flex.addChild(&press_right_text.element) catch unreachable;
 
@@ -147,7 +155,10 @@ pub const Game = struct {
         if (!was_err) {
             const new_grid = GridOfLife.init(self.alloc, .{
                 .size = size,
-                .edge_behaviour = .Dead,
+                .edge_behaviour = switch (self.wrapping_checkbox.value) {
+                    true => .Wrapping,
+                    false => .Dead,
+                },
             }) catch {
                 platform.warn("Could not allocate space for new grid", .{});
                 return;
@@ -155,6 +166,14 @@ pub const Game = struct {
             self.grid.deinit(self.alloc);
             self.grid = new_grid;
         }
+    }
+
+    fn wrapping_changed(checkbox: *gui.Checkbox, userdata: ?usize) void {
+        const self = @intToPtr(*@This(), userdata.?);
+        self.grid.options.edge_behaviour = switch (checkbox.value) {
+            true => .Wrapping,
+            false => .Dead,
+        };
     }
 
     pub fn onEvent(screenPtr: *Screen, context: *Context, event: platform.Event) void {
@@ -349,9 +368,9 @@ pub const Game = struct {
         context.renderer.set_fill_style(.{ .Color = .{ .r = 100, .g = 100, .b = 100, .a = 255 } });
 
         y = top_left_cell.y();
-        while (y <= bottom_right_cell.y()) : (y += 1) {
+        while (y <= bottom_right_cell.y() - 1) : (y += 1) {
             x = top_left_cell.x();
-            while (x <= bottom_right_cell.x()) : (x += 1) {
+            while (x <= bottom_right_cell.x() - 1) : (x += 1) {
                 const pos = vec2is(x, y);
                 if (self.grid.get(pos)) {
                     const x_epsilon: f32 = if (self.grid.get(pos.add(vec2is(1, 0)))) 1 else 0;

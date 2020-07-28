@@ -13,6 +13,7 @@ pub const Label = @import("./label.zig").Label;
 pub const Flexbox = @import("./flexbox.zig").Flexbox;
 pub const TextInput = @import("./text_input.zig").TextInput;
 pub const Button = @import("./button.zig").Button;
+pub const Checkbox = @import("./checkbox.zig").Checkbox;
 
 // A dummy type to use with fieldParentPtr
 pub const Props = usize;
