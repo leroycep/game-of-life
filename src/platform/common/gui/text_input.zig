@@ -62,7 +62,6 @@ pub const TextInput = struct {
             .TextInput => |text| {
                 self.text.appendSlice(text) catch {};
             },
-            else => {},
         }
         return false;
     }
