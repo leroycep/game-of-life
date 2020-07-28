@@ -318,37 +318,40 @@ pub const Game = struct {
         const quarter = self.scale / 4;
         context.renderer.set_line_dash(&[_]f32{ quarter, 2 * quarter, quarter, 0 });
 
+        const top_left_cell = self.cursor_pos_to_cell(vec2f(0, 0));
+        const bottom_right_cell = self.cursor_pos_to_cell(self.screen_size);
+
         context.renderer.begin_path();
-        var y: isize = 0;
-        while (y <= self.grid.options.size.y()) : (y += 1) {
+        var y: isize = std.math.max(0, top_left_cell.y());
+        while (y <= self.grid.options.size.y() and y <= bottom_right_cell.y()) : (y += 1) {
             context.renderer.move_to(
-                grid_offset.x(),
-                grid_offset.y() + @intToFloat(f32, y) * self.scale,
+                grid_offset.x() + @intToFloat(f32, top_left_cell.x()) * self.scale,
+                grid_offset.y() + @intToFloat(f32, top_left_cell.y() + y) * self.scale,
             );
             context.renderer.line_to(
-                grid_offset.x() + @intToFloat(f32, self.grid.options.size.x()) * self.scale,
-                grid_offset.y() + @intToFloat(f32, y) * self.scale,
+                grid_offset.x() + @intToFloat(f32, bottom_right_cell.x()) * self.scale,
+                grid_offset.y() + @intToFloat(f32, top_left_cell.y() + y) * self.scale,
             );
         }
-        var x: isize = 0;
-        while (x <= self.grid.options.size.x()) : (x += 1) {
+        var x: isize = std.math.max(0, top_left_cell.x());
+        while (x <= self.grid.options.size.x() and x <= bottom_right_cell.x()) : (x += 1) {
             context.renderer.move_to(
-                grid_offset.x() + @intToFloat(f32, x) * self.scale,
-                grid_offset.y(),
+                grid_offset.x() + @intToFloat(f32, top_left_cell.x() + x) * self.scale,
+                grid_offset.y() + @intToFloat(f32, top_left_cell.y()) * self.scale,
             );
             context.renderer.line_to(
-                grid_offset.x() + @intToFloat(f32, x) * self.scale,
-                grid_offset.y() + @intToFloat(f32, self.grid.options.size.y()) * self.scale,
+                grid_offset.x() + @intToFloat(f32, top_left_cell.x() + x) * self.scale,
+                grid_offset.y() + @intToFloat(f32, bottom_right_cell.y()) * self.scale,
             );
         }
         context.renderer.stroke();
 
         context.renderer.set_fill_style(.{ .Color = .{ .r = 100, .g = 100, .b = 100, .a = 255 } });
 
-        y = 0;
-        while (y < self.grid.options.size.y()) : (y += 1) {
-            x = 0;
-            while (x < self.grid.options.size.x()) : (x += 1) {
+        y = std.math.max(0, top_left_cell.y());
+        while (y < self.grid.options.size.y() and y <= bottom_right_cell.y()) : (y += 1) {
+            x = std.math.max(0, top_left_cell.x());
+            while (x < self.grid.options.size.x() and x <= bottom_right_cell.x()) : (x += 1) {
                 const pos = vec2is(x, y);
                 if (self.grid.get(pos)) {
                     const x_epsilon: f32 = if (self.grid.get(pos.add(vec2is(1, 0)))) 1 else 0;
