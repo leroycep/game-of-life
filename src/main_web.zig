@@ -72,7 +72,6 @@ export fn onMouseWheel(x: i32, y: i32) void {
 }
 
 export fn onKeyDown(key: u16, scancode: u16) void {
-    platform.warn("key, scan: {}, {}", .{ key, scancode });
     app.onEvent(&context, .{
         .KeyDown = .{
             .key = @intToEnum(platform.Scancode, key),
@@ -82,7 +81,6 @@ export fn onKeyDown(key: u16, scancode: u16) void {
 }
 
 export fn onKeyUp(key: u16, scancode: u16) void {
-    platform.warn("key, scan: {}, {}", .{ key, scancode });
     app.onEvent(&context, .{
         .KeyUp = .{
             .key = @intToEnum(platform.Scancode, key),
