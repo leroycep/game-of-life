@@ -3,6 +3,7 @@ const platform = @import("../../../platform.zig");
 const Context = platform.Context;
 const Event = platform.Event;
 const Rect = platform.Rect;
+const Vec2f = platform.Vec2f;
 const vec2f = platform.vec2f;
 
 pub const Label = @import("./label.zig").Label;
@@ -39,6 +40,7 @@ pub const Element = struct {
     // Returns true if the event has been consumed
     deinitFn: ?fn (*Element) void = null,
     onEventFn: fn (*Element, *Context, Event) bool,
+    minimumSizeFn: fn (*Element, *Context) Vec2f,
     renderFn: fn (*Element, *Context, Rect(f32), alpha: f64) void,
 
     pub fn deinit(self: *@This()) void {
@@ -49,6 +51,10 @@ pub const Element = struct {
 
     pub fn onEvent(self: *@This(), context: *Context, event: Event) bool {
         return self.onEventFn(self, context, event);
+    }
+
+    pub fn minimumSize(self: *@This(), context: *Context) Vec2f {
+        return self.minimumSizeFn(self, context);
     }
 
     pub fn render(self: *@This(), context: *Context, rect: Rect(f32), alpha: f64) void {

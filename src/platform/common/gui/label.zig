@@ -5,6 +5,7 @@ const Allocator = std.mem.Allocator;
 const Element = platform.gui.Element;
 const Context = platform.Context;
 const Event = platform.Event;
+const Vec2f = platform.Vec2f;
 const Rect = platform.Rect;
 const FillStyle = platform.renderer.FillStyle;
 const TextAlign = platform.renderer.TextAlign;
@@ -24,6 +25,7 @@ pub const Label = struct {
         self.* = @This(){
             .element = .{
                 .onEventFn = onEvent,
+                .minimumSizeFn = minimumSize,
                 .renderFn = render,
             },
             .text = text,
@@ -34,6 +36,18 @@ pub const Label = struct {
 
     pub fn onEvent(element: *Element, context: *Context, event: Event) bool {
         return false;
+    }
+
+    pub fn minimumSize(element: *Element, context: *Context) Vec2f {
+        const self = @fieldParentPtr(@This(), "element", element);
+
+        context.renderer.set_text_align(self.text_align);
+        context.renderer.set_text_baseline(self.text_baseline);
+        const metrics = context.renderer.measure_text(self.text);
+
+        platform.warn("metrics: {}", .{metrics});
+
+        return Vec2f.init(@floatCast(f32, metrics.width), @floatCast(f32, metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent));
     }
 
     pub fn render(element: *Element, context: *Context, rect: Rect(f32), alpha: f64) void {

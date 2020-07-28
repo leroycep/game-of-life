@@ -13,7 +13,7 @@ let customEventCallback = eventId => {
 };
 
 let env = {
-  ...getWebGLEnv(canvas, () => memory),
+  ...getWebGLEnv(canvas, () => globalInstance),
   ...getComponentsEnv(componentsRoot, () => memory, customEventCallback),
   consoleLogS: (ptr, len) => {
     const bytes = new Uint8Array(memory.buffer, ptr, len);

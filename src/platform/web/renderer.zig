@@ -4,6 +4,7 @@ const FillStyle = common.renderer.FillStyle;
 const LineCap = common.renderer.LineCap;
 const TextAlign = common.renderer.TextAlign;
 const TextBaseline = common.renderer.TextBaseline;
+const TextMetrics = common.renderer.TextMetrics;
 
 pub const Renderer = struct {
     pub fn init() @This() {
@@ -45,6 +46,12 @@ pub const Renderer = struct {
 
     pub fn fill_text(self: *@This(), text: []const u8, x: f32, y: f32) void {
         web.canvas_fillText(text, x, y);
+    }
+
+    pub fn measure_text(self: *@This(), text: []const u8) TextMetrics {
+        var metrics: TextMetrics = undefined;
+        web.canvas_measureText(text, @ptrToInt(&metrics));
+        return metrics;
     }
 
     pub fn move_to(self: *@This(), x: f32, y: f32) void {

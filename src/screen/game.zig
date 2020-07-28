@@ -80,16 +80,16 @@ pub const Game = struct {
 
         self.generation_text = gui.Label.init(context, "Generation #0") catch unreachable;
         self.generation_text.text_align = .Left;
-        self.generation_text.text_baseline = .Bottom;
+        self.generation_text.text_baseline = .Middle;
 
         self.press_right_text = gui.Label.init(context, TEXT_PRESS_RIGHT) catch unreachable;
         self.press_right_text.text_align = .Right;
-        self.press_right_text.text_baseline = .Bottom;
+        self.press_right_text.text_baseline = .Middle;
 
         self.flex = gui.Flexbox.init(context) catch unreachable;
         self.flex.cross_align = .End;
-        self.flex.children.append(&self.generation_text.element) catch unreachable;
-        self.flex.children.append(&self.press_right_text.element) catch unreachable;
+        self.flex.addChild(&self.generation_text.element) catch unreachable;
+        self.flex.addChild(&self.press_right_text.element) catch unreachable;
     }
 
     pub fn onEvent(screenPtr: *Screen, context: *Context, event: platform.Event) void {

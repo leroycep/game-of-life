@@ -24,3 +24,18 @@ pub const LineCap = enum(u8) {
     round = 1,
     square = 2,
 };
+
+pub const TextMetrics = struct {
+    width: f64,
+    actualBoundingBoxLeft: f64,
+    actualBoundingBoxRight: f64,
+    //fontBoundingBoxAscent: f64,
+    //fontBoundingBoxDescent: f64,
+    actualBoundingBoxAscent: f64,
+    actualBoundingBoxDescent: f64,
+    //emHeightAscent: f64,
+    //emHeightDescent: f64,
+    //hangingBaseline: f64,
+    //alphabeticBaseline: f64,
+    //ideographicBaseline: f64,
+};

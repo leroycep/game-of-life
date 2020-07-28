@@ -25,6 +25,16 @@ export const MOUSE_BUTTON_X2 = @enumToInt(platform.MouseButton.X2);
 export const MAX_DELTA_SECONDS = constants.MAX_DELTA_SECONDS;
 export const TICK_DELTA_SECONDS = constants.TICK_DELTA_SECONDS;
 
+// Export text metric type information so we can modify it from javascript
+const TextMetrics = platform.renderer.TextMetrics;
+export const TextMetrics_SIZE: usize = @sizeOf(TextMetrics);
+export const TextMetrics_OFFSET_width: usize = @byteOffsetOf(TextMetrics, "width");
+export const TextMetrics_OFFSET_actualBoundingBoxAscent: usize = @byteOffsetOf(TextMetrics, "actualBoundingBoxAscent");
+export const TextMetrics_OFFSET_actualBoundingBoxDescent: usize = @byteOffsetOf(TextMetrics, "actualBoundingBoxDescent");
+export const TextMetrics_OFFSET_actualBoundingBoxLeft: usize = @byteOffsetOf(TextMetrics, "actualBoundingBoxLeft");
+export const TextMetrics_OFFSET_actualBoundingBoxRight: usize = @byteOffsetOf(TextMetrics, "actualBoundingBoxRight");
+
+
 var context: platform.Context = undefined;
 
 export fn onInit() void {
