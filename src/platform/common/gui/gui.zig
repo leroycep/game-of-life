@@ -46,7 +46,11 @@ pub const Gui = struct {
                 return root.onEvent(self, .{ .MouseOver = .{ .pos = self.cursor_pos } });
             },
             .MouseButtonDown => |ev| {
-                return root.onEvent(self, .{ .Click = .{ .pos = self.cursor_pos } });
+                const consumed = root.onEvent(self, .{ .Click = .{ .pos = self.cursor_pos } });
+                if (!consumed) {
+                    self.focused = null;
+                }
+                return consumed;
             },
             else => return false,
         }
