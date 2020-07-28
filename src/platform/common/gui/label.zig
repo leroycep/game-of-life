@@ -13,6 +13,7 @@ const TextBaseline = platform.renderer.TextBaseline;
 
 pub const Label = struct {
     element: Element,
+    alloc: *Allocator,
     text: []const u8,
     fill_style: FillStyle = .{ .Color = .{ .r = 0x00, .g = 0x00, .b = 0x00, .a = 0xFF } },
     text_align: TextAlign = .Center,
@@ -23,7 +24,9 @@ pub const Label = struct {
         errdefer context.alloc.destroy(text);
 
         self.* = @This(){
+            .alloc = context.alloc,
             .element = .{
+                .deinitFn = deinit,
                 .onEventFn = onEvent,
                 .minimumSizeFn = minimumSize,
                 .renderFn = render,
@@ -32,6 +35,11 @@ pub const Label = struct {
         };
 
         return self;
+    }
+
+    pub fn deinit(element: *Element) void {
+        const self = @fieldParentPtr(@This(), "element", element);
+        self.alloc.destroy(self);
     }
 
     pub fn onEvent(element: *Element, context: *Context, event: Event) bool {

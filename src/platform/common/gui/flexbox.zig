@@ -14,6 +14,7 @@ const TextBaseline = platform.renderer.TextBaseline;
 
 pub const Flexbox = struct {
     element: Element,
+    alloc: *Allocator,
     children: ArrayList(Child),
 
     // The direction of the elements
@@ -50,6 +51,7 @@ pub const Flexbox = struct {
         errdefer context.alloc.destroy(text);
 
         self.* = @This(){
+            .alloc = context.alloc,
             .element = .{
                 .deinitFn = deinit,
                 .onEventFn = onEvent,
@@ -68,6 +70,7 @@ pub const Flexbox = struct {
             child.element.deinit();
         }
         self.children.deinit();
+        self.alloc.destroy(self);
     }
 
     pub fn addChild(self: *@This(), child_element: *Element) !void {

@@ -38,15 +38,13 @@ pub const Gui = struct {
 
 pub const Element = struct {
     // Returns true if the event has been consumed
-    deinitFn: ?fn (*Element) void = null,
+    deinitFn: fn (*Element) void,
     onEventFn: fn (*Element, *Context, Event) bool,
     minimumSizeFn: fn (*Element, *Context) Vec2f,
     renderFn: fn (*Element, *Context, Rect(f32), alpha: f64) void,
 
     pub fn deinit(self: *@This()) void {
-        if (self.deinitFn) |deinitFn| {
-            deinitFn(self);
-        }
+        self.deinitFn(self);
     }
 
     pub fn onEvent(self: *@This(), context: *Context, event: Event) bool {
