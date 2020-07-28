@@ -23,6 +23,10 @@ pub fn build(b: *Builder) void {
     b.step("run", "Run the native binary").dependOn(&native.run().step);
 
     const wasm = b.addStaticLibrary("game-of-life-web", "src/main_web.zig");
+    wasm.addPackage(.{
+        .name = "zee_alloc",
+        .path = "./zee_alloc/src/main.zig",
+    });
     wasm.step.dependOn(&b.addExecutable("canvas_generate", "tools/canvas_generate.zig").run().step);
     const wasmOutDir = b.fmt("{}" ++ sep_str ++ SITE_DIR, .{b.install_prefix});
     wasm.setOutputDir(wasmOutDir);

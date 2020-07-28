@@ -13,6 +13,7 @@ const Context = platform.Context;
 const Renderer = platform.Renderer;
 const game = @import("../game.zig");
 const GridOfLife = game.GridOfLife;
+const constants = @import("../constants.zig");
 
 const DEFAULT_GRID_WIDTH = 25;
 const DEFAULT_GRID_HEIGHT = 25;
@@ -43,6 +44,8 @@ pub const Game = struct {
     gui: gui.Gui,
     paused_text: *gui.Label,
     generation_text: *gui.Label,
+    x_size_input: *gui.TextInput,
+    y_size_input: *gui.TextInput,
 
     ticks_per_step: f32 = 10,
     ticks_since_last_step: f32 = 0,
@@ -70,6 +73,8 @@ pub const Game = struct {
             .grid = grid,
             .paused_text = undefined,
             .generation_text = undefined,
+            .x_size_input = undefined,
+            .y_size_input = undefined,
             .gui = gui.Gui.init(alloc),
         };
         return self;
@@ -78,7 +83,7 @@ pub const Game = struct {
     pub fn start(screenPtr: *Screen, context: *Context) void {
         const self = @fieldParentPtr(@This(), "screen", screenPtr);
 
-        self.generation_text = gui.Label.init(&self.gui, "Generation #0") catch unreachable;
+        self.generation_text = gui.Label.init(&self.gui, std.mem.dupe(self.alloc, u8, "Generation #0") catch unreachable) catch unreachable;
         self.generation_text.text_align = .Left;
         self.generation_text.text_baseline = .Middle;
 
@@ -91,19 +96,20 @@ pub const Game = struct {
         press_right_text.text_baseline = .Middle;
 
         // Set up size text inputs
-        const x_size_input = gui.TextInput.init(&self.gui) catch unreachable;
-        x_size_input.text.outStream().print("{}", .{self.grid.options.size.x()}) catch unreachable;
-        const y_size_input = gui.TextInput.init(&self.gui) catch unreachable;
-        y_size_input.text.outStream().print("{}", .{self.grid.options.size.y()}) catch unreachable;
+        self.x_size_input = gui.TextInput.init(&self.gui) catch unreachable;
+        self.x_size_input.text.outStream().print("{}", .{self.grid.options.size.x()}) catch unreachable;
+        self.y_size_input = gui.TextInput.init(&self.gui) catch unreachable;
+        self.y_size_input.text.outStream().print("{}", .{self.grid.options.size.y()}) catch unreachable;
 
         const resize_button_label = gui.Label.init(&self.gui, "Resize") catch unreachable;
         const resize_button = gui.Button.init(&self.gui, &resize_button_label.element) catch unreachable;
         resize_button.onclick = resize_clicked;
+        resize_button.userdata = @ptrToInt(self);
 
         const size_input_flex = gui.Flexbox.init(&self.gui) catch unreachable;
         size_input_flex.direction = .Col;
-        size_input_flex.addChild(&x_size_input.element) catch unreachable;
-        size_input_flex.addChild(&y_size_input.element) catch unreachable;
+        size_input_flex.addChild(&self.x_size_input.element) catch unreachable;
+        size_input_flex.addChild(&self.y_size_input.element) catch unreachable;
         size_input_flex.addChild(&resize_button.element) catch unreachable;
 
         const flex = gui.Flexbox.init(&self.gui) catch unreachable;
@@ -117,10 +123,42 @@ pub const Game = struct {
     }
 
     fn resize_clicked(button: *gui.Button, userdata: ?usize) void {
-        platform.warn("Resize button clicked!", .{});
+        const self = @intToPtr(*@This(), userdata.?);
+
+        const x_size_err = std.fmt.parseInt(usize, std.fmt.trim(self.x_size_input.text.items), 10);
+        const y_size_err = std.fmt.parseInt(usize, std.fmt.trim(self.y_size_input.text.items), 10);
+
+        var was_err = false;
+        var size = Vec(2, usize).init(0, 0);
+
+        if (x_size_err) |x_size| {
+            size.v[0] = x_size;
+            self.x_size_input.fill_style = .{ .Color = constants.TEXT_COLOR };
+        } else |err| {
+            self.x_size_input.fill_style = .{ .Color = constants.INVALID_TEXT_COLOR };
+        }
+        if (y_size_err) |y_size| {
+            size.v[1] = y_size;
+            self.y_size_input.fill_style = .{ .Color = constants.TEXT_COLOR };
+        } else |err| {
+            self.y_size_input.fill_style = .{ .Color = constants.INVALID_TEXT_COLOR };
+        }
+
+        if (!was_err) {
+            const new_grid = GridOfLife.init(self.alloc, .{
+                .size = size,
+                .edge_behaviour = .Dead,
+            }) catch {
+                platform.warn("Could not allocate space for new grid", .{});
+                return;
+            };
+            self.grid.deinit(self.alloc);
+            self.grid = new_grid;
+        }
     }
 
     pub fn onEvent(screenPtr: *Screen, context: *Context, event: platform.Event) void {
+        platform.warn("screenptr {}", .{screenPtr});
         const self = @fieldParentPtr(@This(), "screen", screenPtr);
         if (self.gui.onEvent(context, event)) {
             // The event has been consumed by the UI

@@ -3,6 +3,7 @@ const constants = @import("constants.zig");
 const platform = @import("platform.zig");
 const std = @import("std");
 const Vec2i = platform.Vec2i;
+const zee_alloc = @import("zee_alloc");
 
 export const SCANCODE_UNKNOWN = @enumToInt(platform.Scancode.UNKNOWN);
 export const SCANCODE_ESCAPE = @enumToInt(platform.Scancode.ESCAPE);
@@ -39,7 +40,7 @@ export const TextMetrics_OFFSET_actualBoundingBoxRight: usize = @byteOffsetOf(Te
 var context: platform.Context = undefined;
 
 export fn onInit() void {
-    const alloc = std.heap.page_allocator;
+    const alloc = zee_alloc.ZeeAllocDefaults.wasm_allocator;
     context = platform.Context{
         .alloc = alloc,
         .renderer = platform.Renderer.init(),
