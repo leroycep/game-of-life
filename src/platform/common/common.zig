@@ -30,7 +30,21 @@ pub fn vec2is(x: isize, y: isize) Vec(2, isize) {
 
 const math = @import("std").math;
 
-pub const Color = struct { r: u8, g: u8, b: u8, a: u8 };
+pub const Color = struct {
+    r: u8,
+    g: u8,
+    b: u8,
+    a: u8,
+
+    pub fn from_u32(color_code: u32) @This() {
+        return .{
+            .r = @intCast(u8, (color_code & 0xFF000000) >> 24),
+            .g = @intCast(u8, (color_code & 0x00FF0000) >> 16),
+            .b = @intCast(u8, (color_code & 0x0000FF00) >> 8),
+            .a = @intCast(u8, (color_code & 0x000000FF)),
+        };
+    }
+};
 
 pub const EventTag = enum {
     Quit,
