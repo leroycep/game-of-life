@@ -59,6 +59,9 @@ export default function getWebGLEnv(canvas_element, getInstance) {
         canvas_fillRect(x, y, width, height) {
             canvas.fillRect(x,y,width,height);
         },
+        canvas_strokeRect(x, y, width, height) {
+            canvas.strokeRect(x,y,width,height);
+        },
         canvas_setFillStyle_rgba(r, g, b, a) {
             canvas.fillStyle = `rgba(${r},${g},${b},${a})`;
         },
