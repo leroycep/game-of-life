@@ -3,7 +3,7 @@ const platform = @import("../../../platform.zig");
 
 const Allocator = std.mem.Allocator;
 const Element = platform.gui.Element;
-const Context = platform.Context;
+const Gui = platform.gui.Gui;
 const Event = platform.gui.Event;
 const Vec2f = platform.Vec2f;
 const Rect = platform.Rect;
@@ -19,12 +19,12 @@ pub const Label = struct {
     text_align: TextAlign = .Center,
     text_baseline: TextBaseline = .Middle,
 
-    pub fn init(context: *Context, text: []const u8) !*@This() {
-        const self = try context.alloc.create(@This());
-        errdefer context.alloc.destroy(text);
+    pub fn init(gui: *Gui, text: []const u8) !*@This() {
+        const self = try gui.alloc.create(@This());
+        errdefer gui.alloc.destroy(text);
 
         self.* = @This(){
-            .alloc = context.alloc,
+            .alloc = gui.alloc,
             .element = .{
                 .deinitFn = deinit,
                 .onEventFn = onEvent,
@@ -42,23 +42,21 @@ pub const Label = struct {
         self.alloc.destroy(self);
     }
 
-    pub fn onEvent(element: *Element, context: *Context, event: Event) bool {
+    pub fn onEvent(element: *Element, gui: *Gui, event: Event) bool {
         return false;
     }
 
-    pub fn minimumSize(element: *Element, context: *Context) Vec2f {
+    pub fn minimumSize(element: *Element, gui: *Gui) Vec2f {
         const self = @fieldParentPtr(@This(), "element", element);
 
-        context.renderer.set_text_align(self.text_align);
-        context.renderer.set_text_baseline(self.text_baseline);
-        const metrics = context.renderer.measure_text(self.text);
-
-        platform.warn("metrics: {}", .{metrics});
+        gui.renderer.set_text_align(self.text_align);
+        gui.renderer.set_text_baseline(self.text_baseline);
+        const metrics = gui.renderer.measure_text(self.text);
 
         return Vec2f.init(@floatCast(f32, metrics.width), @floatCast(f32, metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent));
     }
 
-    pub fn render(element: *Element, context: *Context, rect: Rect(f32), alpha: f64) void {
+    pub fn render(element: *Element, gui: *Gui, rect: Rect(f32), alpha: f64) void {
         const self = @fieldParentPtr(@This(), "element", element);
 
         const pos_x = switch (self.text_align) {
@@ -73,9 +71,9 @@ pub const Label = struct {
             .Bottom => rect.max.y(),
         };
 
-        context.renderer.set_fill_style(self.fill_style);
-        context.renderer.set_text_align(self.text_align);
-        context.renderer.set_text_baseline(self.text_baseline);
-        context.renderer.fill_text(self.text, pos_x, pos_y);
+        gui.renderer.set_fill_style(self.fill_style);
+        gui.renderer.set_text_align(self.text_align);
+        gui.renderer.set_text_baseline(self.text_baseline);
+        gui.renderer.fill_text(self.text, pos_x, pos_y);
     }
 };

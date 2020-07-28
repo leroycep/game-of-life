@@ -70,7 +70,7 @@ pub const Game = struct {
             .grid = grid,
             .paused_text = undefined,
             .generation_text = undefined,
-            .gui = gui.Gui.init(),
+            .gui = gui.Gui.init(alloc),
         };
         return self;
     }
@@ -78,30 +78,30 @@ pub const Game = struct {
     pub fn start(screenPtr: *Screen, context: *Context) void {
         const self = @fieldParentPtr(@This(), "screen", screenPtr);
 
-        self.generation_text = gui.Label.init(context, "Generation #0") catch unreachable;
+        self.generation_text = gui.Label.init(&self.gui, "Generation #0") catch unreachable;
         self.generation_text.text_align = .Left;
         self.generation_text.text_baseline = .Middle;
 
-        self.paused_text = gui.Label.init(context, "Paused") catch unreachable;
+        self.paused_text = gui.Label.init(&self.gui, "Paused") catch unreachable;
         self.paused_text.text_align = .Center;
         self.paused_text.text_baseline = .Middle;
 
-        const press_right_text = gui.Label.init(context, TEXT_PRESS_RIGHT) catch unreachable;
+        const press_right_text = gui.Label.init(&self.gui, TEXT_PRESS_RIGHT) catch unreachable;
         press_right_text.text_align = .Right;
         press_right_text.text_baseline = .Middle;
 
         // Set up size text inputs
-        const x_size_input = gui.TextInput.init(context) catch unreachable;
+        const x_size_input = gui.TextInput.init(&self.gui) catch unreachable;
         x_size_input.text.outStream().print("{}", .{self.grid.options.size.x()}) catch unreachable;
-        const y_size_input = gui.TextInput.init(context) catch unreachable;
+        const y_size_input = gui.TextInput.init(&self.gui) catch unreachable;
         y_size_input.text.outStream().print("{}", .{self.grid.options.size.y()}) catch unreachable;
 
-        const size_input_flex = gui.Flexbox.init(context) catch unreachable;
+        const size_input_flex = gui.Flexbox.init(&self.gui) catch unreachable;
         size_input_flex.direction = .Col;
         size_input_flex.addChild(&x_size_input.element) catch unreachable;
         size_input_flex.addChild(&y_size_input.element) catch unreachable;
 
-        const flex = gui.Flexbox.init(context) catch unreachable;
+        const flex = gui.Flexbox.init(&self.gui) catch unreachable;
         flex.cross_align = .End;
         flex.addChild(&self.generation_text.element) catch unreachable;
         flex.addChild(&size_input_flex.element) catch unreachable;

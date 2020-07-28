@@ -4,7 +4,7 @@ const platform = @import("../../../platform.zig");
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 const Element = platform.gui.Element;
-const Context = platform.Context;
+const Gui = platform.gui.Gui;
 const Event = platform.gui.Event;
 const Color = platform.Color;
 const Vec2f = platform.Vec2f;
@@ -23,19 +23,19 @@ pub const TextInput = struct {
     width: f32 = 50,
     mouse_over: bool = false,
 
-    pub fn init(context: *Context) !*@This() {
-        const self = try context.alloc.create(@This());
-        errdefer context.alloc.destroy(text);
+    pub fn init(gui: *Gui) !*@This() {
+        const self = try gui.alloc.create(@This());
+        errdefer gui.alloc.destroy(text);
 
         self.* = @This(){
-            .alloc = context.alloc,
+            .alloc = gui.alloc,
             .element = .{
                 .deinitFn = deinit,
                 .onEventFn = onEvent,
                 .minimumSizeFn = minimumSize,
                 .renderFn = render,
             },
-            .text = ArrayList(u8).init(context.alloc),
+            .text = ArrayList(u8).init(gui.alloc),
         };
 
         return self;
@@ -46,26 +46,28 @@ pub const TextInput = struct {
         self.alloc.destroy(self);
     }
 
-    pub fn onEvent(element: *Element, context: *Context, event: Event) bool {
+    pub fn onEvent(element: *Element, gui: *Gui, event: Event) bool {
         const self = @fieldParentPtr(@This(), "element", element);
         switch (event) {
-            .MouseOver => |ev| {
-                return true;
-            },
+            .MouseOver => |ev| return true,
             .MouseEnter => |ev| self.mouse_over = true,
             .MouseLeave => |ev| self.mouse_over = false,
+            .Click => |ev| {
+                gui.focused = &self.element;
+                return true;
+            },
             else => {},
         }
         return false;
     }
 
-    pub fn minimumSize(element: *Element, context: *Context) Vec2f {
+    pub fn minimumSize(element: *Element, gui: *Gui) Vec2f {
         const self = @fieldParentPtr(@This(), "element", element);
         // Todo: Figure out way to store font height
         return Vec2f.init(self.width, 12);
     }
 
-    pub fn render(element: *Element, context: *Context, rect: Rect(f32), alpha: f64) void {
+    pub fn render(element: *Element, gui: *Gui, rect: Rect(f32), alpha: f64) void {
         const self = @fieldParentPtr(@This(), "element", element);
 
         const pos_x = switch (self.text_align) {
@@ -81,14 +83,14 @@ pub const TextInput = struct {
         };
 
         if (self.mouse_over) {
-            context.renderer.set_fill_style(.{ .Color = Color.from_u32(0x777777FF) });
-            context.renderer.fill_rect(rect.min.x(), rect.min.y(), rect.size().x(), rect.size().y());
+            gui.renderer.set_fill_style(.{ .Color = Color.from_u32(0x777777FF) });
+            gui.renderer.fill_rect(rect.min.x(), rect.min.y(), rect.size().x(), rect.size().y());
         }
 
-        context.renderer.set_fill_style(self.fill_style);
-        context.renderer.set_text_align(self.text_align);
-        context.renderer.set_text_baseline(self.text_baseline);
-        context.renderer.fill_text(self.text.items, pos_x, pos_y);
-        context.renderer.stroke_rect(rect.min.x(), rect.min.y(), rect.size().x(), rect.size().y());
+        gui.renderer.set_fill_style(self.fill_style);
+        gui.renderer.set_text_align(self.text_align);
+        gui.renderer.set_text_baseline(self.text_baseline);
+        gui.renderer.fill_text(self.text.items, pos_x, pos_y);
+        gui.renderer.stroke_rect(rect.min.x(), rect.min.y(), rect.size().x(), rect.size().y());
     }
 };

@@ -4,7 +4,7 @@ const platform = @import("../../../platform.zig");
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 const Element = platform.gui.Element;
-const Context = platform.Context;
+const Gui = platform.gui.Gui;
 const Event = platform.gui.Event;
 const Rect = platform.Rect;
 const Vec2f = platform.Vec2f;
@@ -16,7 +16,7 @@ pub const Flexbox = struct {
     element: Element,
     alloc: *Allocator,
     children: ArrayList(Child),
-    prev_element_mouse_over: ?*Element = null,
+    prev_child_over: ?*Child = null,
 
     // The direction of the elements
     direction: Direction = .Row,
@@ -48,19 +48,19 @@ pub const Flexbox = struct {
         rect: Rect(f32),
     };
 
-    pub fn init(context: *Context) !*@This() {
-        const self = try context.alloc.create(@This());
-        errdefer context.alloc.destroy(text);
+    pub fn init(gui: *Gui) !*@This() {
+        const self = try gui.alloc.create(@This());
+        errdefer gui.alloc.destroy(text);
 
         self.* = @This(){
-            .alloc = context.alloc,
+            .alloc = gui.alloc,
             .element = .{
                 .deinitFn = deinit,
                 .onEventFn = onEvent,
                 .minimumSizeFn = minimumSize,
                 .renderFn = render,
             },
-            .children = ArrayList(Child).init(context.alloc),
+            .children = ArrayList(Child).init(gui.alloc),
         };
 
         return self;
@@ -83,40 +83,49 @@ pub const Flexbox = struct {
         });
     }
 
-    pub fn onEvent(element: *Element, context: *Context, event: Event) bool {
+    pub fn onEvent(element: *Element, gui: *Gui, event: Event) bool {
         const self = @fieldParentPtr(@This(), "element", element);
         switch (event) {
+            .MouseEnter => return false,
             .MouseLeave => |ev| {
-                if (self.prev_element_mouse_over) |prev| {
-                    _ = prev.onEvent(context, .{ .MouseLeave = ev });
-                    self.prev_element_mouse_over = null;
+                if (self.prev_child_over) |prev| {
+                    _ = prev.element.onEvent(gui, .{ .MouseLeave = ev });
+                    self.prev_child_over = null;
+                }
+                return false;
+            },
+            .Click => |ev| {
+                if (self.prev_child_over) |prev| {
+                    if (prev.rect.contains(ev.pos)) {
+                        _ = prev.element.onEvent(gui, .{ .Click = ev });
+                        return true;
+                    }
                 }
                 return false;
             },
             .MouseOver => |ev| {
-                for (self.children.items) |child| {
+                for (self.children.items) |*child| {
                     if (child.rect.contains(ev.pos)) {
-                        if (!std.meta.eql(self.prev_element_mouse_over, child.element)) {
-                            if (self.prev_element_mouse_over) |prev| {
-                                _ = prev.onEvent(context, .{ .MouseLeave = ev });
+                        if (!std.meta.eql(self.prev_child_over, child)) {
+                            if (self.prev_child_over) |prev| {
+                                _ = prev.element.onEvent(gui, .{ .MouseLeave = ev });
                             }
-                            _ = child.element.onEvent(context, .{ .MouseEnter = ev });
+                            _ = child.element.onEvent(gui, .{ .MouseEnter = ev });
                         }
-                        self.prev_element_mouse_over = child.element;
-                        return child.element.onEvent(context, event);
+                        self.prev_child_over = child;
+                        return child.element.onEvent(gui, event);
                     }
                 }
-                if (self.prev_element_mouse_over) |prev| {
-                    _ = prev.onEvent(context, .{ .MouseLeave = ev });
-                    self.prev_element_mouse_over = null;
+                if (self.prev_child_over) |prev| {
+                    _ = prev.element.onEvent(gui, .{ .MouseLeave = ev });
+                    self.prev_child_over = null;
                 }
                 return false;
             },
-            else => return false,
         }
     }
 
-    pub fn minimumSize(element: *Element, context: *Context) Vec2f {
+    pub fn minimumSize(element: *Element, gui: *Gui) Vec2f {
         const self = @fieldParentPtr(@This(), "element", element);
 
         const main_axis: usize = switch (self.direction) {
@@ -131,7 +140,7 @@ pub const Flexbox = struct {
         var size = Vec2f.init(0, 0);
 
         for (self.children.items) |child| {
-            const child_size = child.element.minimumSize(context);
+            const child_size = child.element.minimumSize(gui);
             size.v[main_axis] += child_size.v[main_axis];
             size.v[cross_axis] = std.math.max(size.v[cross_axis], child_size.v[cross_axis]);
         }
@@ -139,7 +148,7 @@ pub const Flexbox = struct {
         return size;
     }
 
-    pub fn render(element: *Element, context: *Context, rect: Rect(f32), alpha: f64) void {
+    pub fn render(element: *Element, gui: *Gui, rect: Rect(f32), alpha: f64) void {
         const self = @fieldParentPtr(@This(), "element", element);
 
         const main_axis: usize = switch (self.direction) {
@@ -155,7 +164,7 @@ pub const Flexbox = struct {
         var cross_min_width: f32 = 0;
 
         for (self.children.items) |*child| {
-            child.min_size = child.element.minimumSize(context);
+            child.min_size = child.element.minimumSize(gui);
             main_space_used += child.min_size.v[main_axis];
             cross_min_width = std.math.max(cross_min_width, child.min_size.v[cross_axis]);
         }
@@ -187,7 +196,7 @@ pub const Flexbox = struct {
             size.v[cross_axis] = cross_min_width;
 
             child.rect = Rect(f32).initPosAndSize(pos, size);
-            child.element.render(context, child.rect, alpha);
+            child.element.render(gui, child.rect, alpha);
 
             pos.v[main_axis] += child.min_size.v[main_axis] + space_between;
         }
