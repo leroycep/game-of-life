@@ -92,6 +92,9 @@ pub const Game = struct {
         self.paused_text = gui.Label.init(&self.gui, "Paused") catch unreachable;
         self.paused_text.text_align = .Center;
         self.paused_text.text_baseline = .Middle;
+        const play_pause_button = gui.Button.init(&self.gui, &self.paused_text.element) catch unreachable;
+        play_pause_button.onclick = play_pause_clicked;
+        play_pause_button.userdata = @ptrToInt(self);
 
         const press_right_text = gui.Label.init(&self.gui, TEXT_PRESS_RIGHT) catch unreachable;
         press_right_text.text_align = .Right;
@@ -124,7 +127,7 @@ pub const Game = struct {
         flex.addChild(&size_input_flex.element) catch unreachable;
         flex.addChild(&self.wrapping_checkbox.element) catch unreachable;
         flex.addChild(&resize_button.element) catch unreachable;
-        flex.addChild(&self.paused_text.element) catch unreachable;
+        flex.addChild(&play_pause_button.element) catch unreachable;
         flex.addChild(&press_right_text.element) catch unreachable;
 
         self.gui.root = &flex.element;
@@ -178,6 +181,16 @@ pub const Game = struct {
         };
     }
 
+    fn play_pause_clicked(button: *gui.Button, userdata: ?usize) void {
+        const self = @intToPtr(*@This(), userdata.?);
+        self.toggle_play_pause();
+    }
+
+    fn toggle_play_pause(self: *@This()) void {
+        self.paused = !self.paused;
+        self.paused_text.text = if (self.paused) "Paused" else "Running";
+    }
+
     pub fn onEvent(screenPtr: *Screen, context: *Context, event: platform.Event) void {
         platform.warn("screenptr {}", .{screenPtr});
         const self = @fieldParentPtr(@This(), "screen", screenPtr);
@@ -189,10 +202,7 @@ pub const Game = struct {
             .Quit => platform.quit(),
             .KeyDown => |ev| switch (ev.scancode) {
                 .ESCAPE => self.quit_pressed = true,
-                .SPACE => {
-                    self.paused = !self.paused;
-                    self.paused_text.text = if (self.paused) "Paused" else "Running";
-                },
+                .SPACE => self.toggle_play_pause(),
                 .RIGHT => self.step_once = true,
                 .UP => self.ticks_per_step += 1,
                 .DOWN => {
