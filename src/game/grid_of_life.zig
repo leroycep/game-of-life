@@ -114,6 +114,31 @@ pub const GridOfLife = struct {
         self.generation += 1;
     }
 
+    // Get the smallest rectangle that contains the all living cells
+    pub fn min_rect(self: @This(), rect: Rect(isize)) ?Rect(isize) {
+        var min = rect.max;
+        var max = rect.min;
+
+        var pos = rect.min;
+        while (pos.y() < rect.max.y()) : (pos.v[1] += 1) {
+            pos.v[0] = rect.min.x();
+            while (pos.x() < rect.max.x()) : (pos.v[0] += 1) {
+                if (self.get(pos)) {
+                    platform.warn("{}, {}", .{ min, max });
+                    min = min.minComponents(pos);
+                    max = max.maxComponents(pos);
+                }
+            }
+        }
+        platform.warn("final {}, {}", .{ min, max });
+
+        if (min.x() > max.x() or min.y() > max.y()) {
+            return null;
+        }
+
+        return Rect(isize).initMinAndMax(min, max.add(vec2is(1, 1)));
+    }
+
     pub fn copy(dest: *@This(), dest_rect: Rect(isize), src: @This(), src_rect: Rect(isize)) void {
         var src_pos = src_rect.min;
         var dest_pos = dest_rect.min;
