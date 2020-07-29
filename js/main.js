@@ -96,6 +96,10 @@ fetch("game-of-life-web.wasm")
         ex.MOUSE_BUTTON_X2,
     ];
 
+    canvas.addEventListener("contextmenu", ev => {
+      ev.preventDefault();
+    });
+
     canvas.addEventListener("mousemove", ev => {
       const rect = canvas.getBoundingClientRect();
       instance.exports.onMouseMove(ev.x - rect.left, ev.y - rect.top, ev.buttons);
