@@ -69,7 +69,7 @@ pub const GridOfLife = struct {
     pub fn idx(self: @This(), pos: Vec(2, isize)) ?usize {
         if (pos.x() < 0 or pos.x() >= self.options.size.x() or pos.y() < 0 or pos.y() >= self.options.size.y()) return null;
         const pos_u = pos.intCast(usize);
-        return pos_u.y() * self.options.size.y() + pos_u.x();
+        return pos_u.y() * self.options.size.x() + pos_u.x();
     }
 
     pub fn idx_wrapping(self: @This(), pos: Vec(2, isize)) usize {
