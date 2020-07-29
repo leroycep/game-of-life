@@ -118,8 +118,8 @@ pub const GridOfLife = struct {
         var src_pos = src_rect.min;
         var dest_pos = dest_rect.min;
         while (src_pos.y() < src_rect.max.y() and dest_pos.y() < dest_rect.max.y()) {
-            src_pos.v[0] = 0;
-            dest_pos.v[0] = 0;
+            src_pos.v[0] = src_rect.min.x();
+            dest_pos.v[0] = dest_rect.min.x();
             while (src_pos.x() < src_rect.max.x() and dest_pos.x() < dest_rect.max.x()) {
                 dest.set(dest_pos, src.get(src_pos));
 
