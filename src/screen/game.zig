@@ -228,7 +228,8 @@ pub const Game = struct {
                     self.start_cell = self.cursor_pos_to_cell(ev.pos.intToFloat(f32));
                     self.prev_cell = self.start_cell;
                     if (self.grid_clipboard) |clipboard| {
-                        const dest = platform.Rect(isize).initPosAndSize(self.start_cell, clipboard.options.size.intCast(isize));
+                        const clipboard_center = clipboard.options.size.scalDiv(2).intCast(isize);
+                        const dest = platform.Rect(isize).initPosAndSize(self.start_cell.sub(clipboard_center), clipboard.options.size.intCast(isize));
                         const src = platform.Rect(isize).initPosAndSize(Vec(2, isize).init(0, 0), clipboard.options.size.intCast(isize));
                         self.grid.copy(dest, clipboard, src);
                     } else {
@@ -466,14 +467,15 @@ pub const Game = struct {
         if (self.grid_clipboard) |clipboard| {
             context.renderer.set_fill_style(.{ .Color = .{ .r = 0x77, .g = 0x77, .b = 0x77, .a = 0xAA } });
             const clipboard_offset = self.camera_relative_pos_to_cursor(self.cell_pos_to_camera_relative(self.camera_relative_pos_to_cell(self.cursor_pos_to_camera_relative(self.cursor_pos)).floor()));
+            const clipboard_center = clipboard.options.size.scalDiv(2).intCast(isize);
             var clipboard_cell_pos = Vec(2, isize).init(0, 0);
             while (clipboard_cell_pos.y() <= clipboard.options.size.y()) : (clipboard_cell_pos.v[1] += 1) {
                 clipboard_cell_pos.v[0] = 0;
                 while (clipboard_cell_pos.x() <= clipboard.options.size.x()) : (clipboard_cell_pos.v[0] += 1) {
                     if (clipboard.get(clipboard_cell_pos)) {
                         context.renderer.fill_rect(
-                            clipboard_offset.x() + @intToFloat(f32, clipboard_cell_pos.x()) * self.scale,
-                            clipboard_offset.y() + @intToFloat(f32, clipboard_cell_pos.y()) * self.scale,
+                            clipboard_offset.x() + @intToFloat(f32, clipboard_cell_pos.x() - clipboard_center.x()) * self.scale,
+                            clipboard_offset.y() + @intToFloat(f32, clipboard_cell_pos.y() - clipboard_center.y()) * self.scale,
                             self.scale,
                             self.scale,
                         );
