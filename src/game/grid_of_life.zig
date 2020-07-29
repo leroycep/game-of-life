@@ -3,6 +3,7 @@ const platform = @import("../platform.zig");
 const Vec = platform.Vec;
 const vec2us = platform.vec2us;
 const vec2is = platform.vec2is;
+const Rect = platform.Rect;
 
 pub const GridOptions = struct {
     size: Vec(2, usize),
@@ -111,6 +112,23 @@ pub const GridOfLife = struct {
         self.cells = self.cells_next;
         self.cells_next = tmp;
         self.generation += 1;
+    }
+
+    pub fn copy(dest: *@This(), dest_rect: Rect(isize), src: @This(), src_rect: Rect(isize)) void {
+        var src_pos = src_rect.min;
+        var dest_pos = dest_rect.min;
+        while (src_pos.y() < src_rect.max.y() and dest_pos.y() < dest_rect.max.y()) {
+            src_pos.v[0] = 0;
+            dest_pos.v[0] = 0;
+            while (src_pos.x() < src_rect.max.x() and dest_pos.x() < dest_rect.max.x()) {
+                dest.set(dest_pos, src.get(src_pos));
+
+                src_pos.v[0] += 1;
+                dest_pos.v[0] += 1;
+            }
+            src_pos.v[1] += 1;
+            dest_pos.v[1] += 1;
+        }
     }
 };
 

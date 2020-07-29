@@ -36,6 +36,7 @@ pub const Game = struct {
 
     is_selecting: bool,
     select_start_cell: Vec(2, isize),
+    grid_clipboard: GridOfLife,
 
     start_pan: ?Vec2i = null,
     start_pan_camera_pos: ?Vec2f = null,
@@ -61,6 +62,12 @@ pub const Game = struct {
             .size = vec2us(DEFAULT_GRID_WIDTH, DEFAULT_GRID_HEIGHT),
             .edge_behaviour = .Dead,
         });
+        errdefer grid.deinit(alloc);
+        const grid_clipboard = try GridOfLife.init(alloc, .{
+            .size = vec2us(0, 0),
+            .edge_behaviour = .Dead,
+        });
+        errdefer grid_clipboard.deinit(alloc);
         self.* = .{
             .alloc = alloc,
             .screen = .{
@@ -76,6 +83,7 @@ pub const Game = struct {
             .prev_cell = vec2is(-1, -1),
             .is_selecting = false,
             .select_start_cell = vec2is(-1, -1),
+            .grid_clipboard = grid_clipboard,
             .grid = grid,
             .paused_text = undefined,
             .generation_text = undefined,
@@ -197,7 +205,6 @@ pub const Game = struct {
     }
 
     pub fn onEvent(screenPtr: *Screen, context: *Context, event: platform.Event) void {
-        platform.warn("screenptr {}", .{screenPtr});
         const self = @fieldParentPtr(@This(), "screen", screenPtr);
         if (self.gui.onEvent(context, event)) {
             // The event has been consumed by the UI
@@ -244,6 +251,23 @@ pub const Game = struct {
                 .Right => {
                     self.is_selecting = false;
                     context.set_cursor(.default);
+
+                    // Copy selection to grid clipboard
+                    const end_cell = self.cursor_pos_to_cell(ev.pos.intToFloat(f32));
+                    var src_rect = platform.Rect(isize).initTwoPos(self.select_start_cell, end_cell);
+                    src_rect.max = src_rect.max.add(Vec(2, isize).init(1, 1));
+                    const dest_rect = platform.Rect(isize).initPosAndSize(Vec(2, isize).init(0, 0), src_rect.size());
+
+                    self.grid_clipboard.deinit(self.alloc);
+                    self.grid_clipboard = GridOfLife.init(self.alloc, .{
+                        .size = dest_rect.size().intCast(usize),
+                        .edge_behaviour = .Dead,
+                    }) catch {
+                        platform.warn("Could not allocate space for grid clipboard", .{});
+                        return;
+                    };
+
+                    self.grid_clipboard.copy(dest_rect, self.grid, src_rect);
                 },
                 else => {},
             },
@@ -407,6 +431,24 @@ pub const Game = struct {
                         grid_offset.y() + @intToFloat(f32, pos.y()) * self.scale,
                         self.scale + x_epsilon,
                         self.scale + y_epsilon,
+                    );
+                }
+            }
+        }
+
+        // Render the clipboard over the other grid
+        context.renderer.set_fill_style(.{ .Color = .{ .r = 0x77, .g = 0x77, .b = 0x77, .a = 0xAA } });
+        const clipboard_offset = self.camera_relative_pos_to_cursor(self.cell_pos_to_camera_relative(self.camera_relative_pos_to_cell(self.cursor_pos_to_camera_relative(self.cursor_pos)).floor()));
+        var clipboard_cell_pos = Vec(2, isize).init(0, 0);
+        while (clipboard_cell_pos.y() <= self.grid_clipboard.options.size.y()) : (clipboard_cell_pos.v[1] += 1) {
+            clipboard_cell_pos.v[0] = 0;
+            while (clipboard_cell_pos.x() <= self.grid_clipboard.options.size.x()) : (clipboard_cell_pos.v[0] += 1) {
+                if (self.grid_clipboard.get(clipboard_cell_pos)) {
+                    context.renderer.fill_rect(
+                        clipboard_offset.x() + @intToFloat(f32, clipboard_cell_pos.x()) * self.scale,
+                        clipboard_offset.y() + @intToFloat(f32, clipboard_cell_pos.y()) * self.scale,
+                        self.scale,
+                        self.scale,
                     );
                 }
             }

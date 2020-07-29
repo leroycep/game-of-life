@@ -175,6 +175,17 @@ pub fn Vec(comptime S: usize, comptime T: type) type {
             return true;
         }
 
+        pub fn floor(self: @This()) @This() {
+            var res: @This() = undefined;
+
+            comptime var i = 0;
+            inline while (i < S) : (i += 1) {
+                res.v[i] = @floor(self.v[i]);
+            }
+
+            return res;
+        }
+
         pub fn intToFloat(self: @This(), comptime F: type) Vec(S, F) {
             var res: [S]F = undefined;
 
