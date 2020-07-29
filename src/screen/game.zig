@@ -34,6 +34,9 @@ pub const Game = struct {
     start_cell: Vec(2, isize),
     prev_cell: Vec(2, isize),
 
+    is_selecting: bool,
+    select_start_cell: Vec(2, isize),
+
     start_pan: ?Vec2i = null,
     start_pan_camera_pos: ?Vec2f = null,
     camera_pos: Vec2f = Vec2f.init(0, 0),
@@ -71,6 +74,8 @@ pub const Game = struct {
             .step_once = false,
             .start_cell = vec2is(-1, -1),
             .prev_cell = vec2is(-1, -1),
+            .is_selecting = false,
+            .select_start_cell = vec2is(-1, -1),
             .grid = grid,
             .paused_text = undefined,
             .generation_text = undefined,
@@ -222,12 +227,22 @@ pub const Game = struct {
                     self.start_pan_camera_pos = self.camera_pos;
                     context.set_cursor(.grabbing);
                 },
+                .Right => {
+                    self.select_start_cell = self.cursor_pos_to_cell(ev.pos.intToFloat(f32));
+                    self.is_selecting = true;
+                    // TODO: chose a cursor for select
+                    //context.set_cursor(.grabbing);
+                },
                 else => {},
             },
             .MouseButtonUp => |ev| switch (ev.button) {
                 .Middle => {
                     self.start_pan = null;
                     self.start_pan_camera_pos = null;
+                    context.set_cursor(.default);
+                },
+                .Right => {
+                    self.is_selecting = false;
                     context.set_cursor(.default);
                 },
                 else => {},
@@ -411,6 +426,17 @@ pub const Game = struct {
                 const y_epsilon: f32 = if (self.grid.get(highlight_cell_pos.add(vec2is(0, 1)))) epsilon else 0;
                 context.renderer.fill_rect(draw_pos.x(), draw_pos.y(), self.scale + x_epsilon, self.scale + y_epsilon);
             }
+        }
+        if (self.paused and self.is_selecting) {
+            const current_cell = self.cursor_pos_to_cell(self.cursor_pos);
+            const rect = platform.Rect(isize).initTwoPos(self.select_start_cell, current_cell);
+            context.renderer.set_fill_style(.{ .Color = .{ .r = 0x77, .g = 0x77, .b = 0x77, .a = 0x77 } });
+            context.renderer.fill_rect(
+                grid_offset.x() + @intToFloat(f32, rect.min.x()) * self.scale,
+                grid_offset.y() + @intToFloat(f32, rect.min.y()) * self.scale,
+                @intToFloat(f32, rect.size().x() + 1) * self.scale,
+                @intToFloat(f32, rect.size().y() + 1) * self.scale,
+            );
         }
 
         context.renderer.set_fill_style(.{ .Color = .{ .r = 100, .g = 100, .b = 100, .a = 255 } });

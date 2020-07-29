@@ -138,7 +138,9 @@ const funcs = [_]Func{
         },
         .ret = "void",
         .js =
-            \\canvas.fillStyle = `rgba(${r},${g},${b},${a})`;
+            \\// make alpha work; apparently it only accepts floats
+            \\const alpha = a / 255.0;
+            \\canvas.fillStyle = `rgba(${r},${g},${b},${alpha})`;
             },
     Func{
         .name = "canvas_setStrokeStyle_rgba",

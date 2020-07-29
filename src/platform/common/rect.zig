@@ -22,6 +22,13 @@ pub fn Rect(comptime T: type) type {
             };
         }
 
+        pub fn initTwoPos(pos0: Vec(2, T), pos1: Vec(2, T)) @This() {
+            return .{
+                .min = pos0.minComponents(pos1),
+                .max = pos0.maxComponents(pos1),
+            };
+        }
+
         pub fn center(self: @This()) Vec(2, T) {
             return self.min.add(self.max).scalMul(0.5);
         }
