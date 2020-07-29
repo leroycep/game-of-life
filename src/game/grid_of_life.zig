@@ -124,13 +124,11 @@ pub const GridOfLife = struct {
             pos.v[0] = rect.min.x();
             while (pos.x() < rect.max.x()) : (pos.v[0] += 1) {
                 if (self.get(pos)) {
-                    platform.warn("{}, {}", .{ min, max });
                     min = min.minComponents(pos);
                     max = max.maxComponents(pos);
                 }
             }
         }
-        platform.warn("final {}, {}", .{ min, max });
 
         if (min.x() > max.x() or min.y() > max.y()) {
             return null;
