@@ -33,12 +33,30 @@ pub const Pattern = struct {
 
 pub const PREDEFINED = [_]Pattern{
     try Pattern.check(.{
+        .name = "Block",
+        .size = vec2us(2, 2),
+        .cells = &[_]u1{
+            1, 1,
+            1, 1,
+        },
+    }),
+    try Pattern.check(.{
         .name = "Glider",
         .size = vec2us(3, 3),
         .cells = &[_]u1{
             0, 1, 1,
             1, 0, 1,
             0, 0, 1,
+        },
+    }),
+    try Pattern.check(.{
+        .name = "LWSS",
+        .size = vec2us(5, 4),
+        .cells = &[_]u1{
+            1, 0, 0, 1, 0,
+            0, 0, 0, 0, 1,
+            1, 0, 0, 0, 1,
+            0, 1, 1, 1, 1,
         },
     }),
     try Pattern.check(.{
