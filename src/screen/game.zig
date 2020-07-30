@@ -345,11 +345,18 @@ pub const Game = struct {
                 else => {},
             },
             .MouseMotion => |ev| {
-                if (self.paused and ev.is_pressed(.Left) and self.grid_clipboard == null) setting_cells: {
+                if (self.paused and ev.is_pressed(.Left)) setting_cells: {
                     const current_cell = self.cursor_pos_to_cell(ev.pos.intToFloat(f32));
-                    if (self.start_cell.eql(current_cell)) break :setting_cells;
-                    self.fill_line_on_grid(self.prev_cell, current_cell);
-                    self.prev_cell = current_cell;
+                    if (self.grid_clipboard) |clipboard| {
+                        const clipboard_center = clipboard.options.size.scalDiv(2).intCast(isize);
+                        const dest = platform.Rect(isize).initPosAndSize(current_cell.sub(clipboard_center), clipboard.options.size.intCast(isize));
+                        const src = platform.Rect(isize).initPosAndSize(Vec(2, isize).init(0, 0), clipboard.options.size.intCast(isize));
+                        self.grid.copy(dest, clipboard, src);
+                    } else {
+                        if (self.start_cell.eql(current_cell)) break :setting_cells;
+                        self.fill_line_on_grid(self.prev_cell, current_cell);
+                        self.prev_cell = current_cell;
+                    }
                 }
                 if (ev.is_pressed(.Middle)) panning: {
                     const start_pan = self.start_pan orelse break :panning;
