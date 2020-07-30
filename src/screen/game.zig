@@ -165,13 +165,13 @@ pub const Game = struct {
 
             const pattern_button_label = gui.Label.init(&self.gui, pattern.name) catch unreachable;
             pattern_button_label.element.margin = .{
-                .top = 10,
-                .left = 10,
-                .right = 10,
-                .bottom = 10,
+                .top = 7,
+                .left = 5,
+                .right = 5,
+                .bottom = 7,
             };
             const pattern_button = gui.Button.init(&self.gui, &pattern_button_label.element) catch unreachable;
-            pattern_button.element.margin = .{ .top = 5 };
+            pattern_button.element.margin = .{ .top = 5, .left = 5 };
             pattern_button.onclick = PatternClosure.execute;
             pattern_button.userdata = @ptrToInt(closure);
 
