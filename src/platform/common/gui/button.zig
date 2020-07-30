@@ -74,8 +74,10 @@ pub const Button = struct {
 
         if (self.mouse_over) {
             gui.renderer.set_fill_style(.{ .Color = Color.from_u32(0x777777FF) });
-            gui.renderer.fill_rect(rect.min.x(), rect.min.y(), rect.size().x(), rect.size().y());
+        } else {
+            gui.renderer.set_fill_style(.{ .Color = Color.from_u32(0xBBBBBBFF) });
         }
+        gui.renderer.fill_rect(rect.min.x(), rect.min.y(), rect.size().x(), rect.size().y());
 
         self.label.render(gui, rect, alpha);
     }
