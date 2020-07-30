@@ -151,37 +151,32 @@ pub const Game = struct {
         flex.addChild(&play_pause_button.element) catch unreachable;
         flex.addChild(&press_right_text.element) catch unreachable;
 
-        const glider_button_label = gui.Label.init(&self.gui, "Glider") catch unreachable;
-        glider_button_label.element.margin = .{
-            .top = 10,
-            .left = 10,
-            .right = 10,
-            .bottom = 10,
-        };
-        const glider_button = gui.Button.init(&self.gui, &glider_button_label.element) catch unreachable;
-        glider_button.onclick = glider_clicked;
-        glider_button.userdata = @ptrToInt(self);
-
-        const pulsar_button_label = gui.Label.init(&self.gui, game.patterns.PULSAR.name) catch unreachable;
-        pulsar_button_label.element.margin = .{
-            .top = 10,
-            .left = 10,
-            .right = 10,
-            .bottom = 10,
-        };
-        const pulsar_button = gui.Button.init(&self.gui, &pulsar_button_label.element) catch unreachable;
-        pulsar_button.element.margin = .{
-            .top = 5,
-        };
-        pulsar_button.onclick = pulsar_clicked;
-        pulsar_button.userdata = @ptrToInt(self);
-
         const tool_bar_flex = gui.Flexbox.init(&self.gui) catch unreachable;
         tool_bar_flex.direction = .Col;
         tool_bar_flex.justification = .Start;
         tool_bar_flex.cross_align = .Center;
-        tool_bar_flex.addChild(&glider_button.element) catch unreachable;
-        tool_bar_flex.addChild(&pulsar_button.element) catch unreachable;
+
+        for (game.patterns.PREDEFINED) |*pattern| {
+            var closure = self.alloc.create(PatternClosure) catch unreachable;
+            closure.* = .{
+                .game = self,
+                .pattern = pattern,
+            };
+
+            const pattern_button_label = gui.Label.init(&self.gui, pattern.name) catch unreachable;
+            pattern_button_label.element.margin = .{
+                .top = 10,
+                .left = 10,
+                .right = 10,
+                .bottom = 10,
+            };
+            const pattern_button = gui.Button.init(&self.gui, &pattern_button_label.element) catch unreachable;
+            pattern_button.element.margin = .{ .top = 5 };
+            pattern_button.onclick = PatternClosure.execute;
+            pattern_button.userdata = @ptrToInt(closure);
+
+            tool_bar_flex.addChild(&pattern_button.element) catch unreachable;
+        }
 
         const fullscreen_button_label = gui.Label.init(&self.gui, "Fullscreen") catch unreachable;
         fullscreen_button_label.element.margin = .{
@@ -273,17 +268,22 @@ pub const Game = struct {
         context.request_fullscreen();
     }
 
-    fn glider_clicked(button: *gui.Button, userdata: ?usize) void {
-        const self = @intToPtr(*@This(), userdata.?);
-        if (self.grid_clipboard) |clipboard| {
-            clipboard.deinit(self.alloc);
-            self.grid_clipboard = null;
+    const PatternClosure = struct {
+        game: *Game,
+        pattern: *const game.patterns.Pattern,
+
+        fn execute(button: *gui.Button, userdata: ?usize) void {
+            const closure = @intToPtr(*@This(), userdata.?);
+            if (closure.game.grid_clipboard) |clipboard| {
+                clipboard.deinit(closure.game.alloc);
+                closure.game.grid_clipboard = null;
+            }
+            closure.game.grid_clipboard = closure.pattern.to_grid_of_life(closure.game.alloc) catch {
+                platform.warn("Could not allocate space for new grid", .{});
+                return;
+            };
         }
-        self.grid_clipboard = game.patterns.GLIDER.to_grid_of_life(self.alloc) catch {
-            platform.warn("Could not allocate space for new grid", .{});
-            return;
-        };
-    }
+    };
 
     fn pulsar_clicked(button: *gui.Button, userdata: ?usize) void {
         const self = @intToPtr(*@This(), userdata.?);
