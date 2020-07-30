@@ -260,8 +260,9 @@ pub const Game = struct {
                     context.set_cursor(.default);
 
                     // Copy selection to grid clipboard
-                    const end_cell = self.cursor_pos_to_cell(ev.pos.intToFloat(f32)).add(Vec(2, isize).init(1, 1));
+                    const end_cell = self.cursor_pos_to_cell(ev.pos.intToFloat(f32));
                     var src_rect = platform.Rect(isize).initTwoPos(self.select_start_cell, end_cell);
+                    src_rect.max = src_rect.max.add(Vec(2, isize).init(1, 1));
 
                     // get rid of the previous grid_clipboard
                     if (self.grid_clipboard) |clipboard| {
