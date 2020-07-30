@@ -63,7 +63,9 @@ export default function getWebGLEnv(canvas_element, getInstance) {
             canvas.strokeRect(x,y,width,height);
         },
         canvas_setFillStyle_rgba(r, g, b, a) {
-            canvas.fillStyle = `rgba(${r},${g},${b},${a})`;
+            // make alpha work; apparently it only accepts floats
+            const alpha = a / 255.0;
+            canvas.fillStyle = `rgba(${r},${g},${b},${alpha})`;
         },
         canvas_setStrokeStyle_rgba(r, g, b, a) {
             canvas.strokeStyle = `rgba(${r},${g},${b},${a})`;
