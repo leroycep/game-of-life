@@ -68,6 +68,7 @@ pub const Grid = struct {
     };
 
     pub const Size = union(enum) {
+        auto: void,
         px: f32,
         fr: u32,
     };
@@ -213,8 +214,16 @@ pub const Grid = struct {
                 child.track_span = track_span;
             }
 
+            var min_single_widths = self.alloc.alloc(f32, self.layout.row.?.len) catch unreachable;
+            defer self.alloc.free(min_single_widths);
+            std.mem.set(f32, min_single_widths, 0);
+
             for (self.children.items) |*child| {
                 child.min_size = child.element.minimumSize(gui);
+                if (child.track_span.?.size().x() == 0) {
+                    const min_width = &min_single_widths[child.track_span.?.min.x()];
+                    min_width.* = std.math.max(min_width.*, child.min_size.x());
+                }
             }
 
             var widths = self.alloc.alloc(f32, self.layout.row.?.len) catch unreachable;
@@ -224,6 +233,10 @@ pub const Grid = struct {
             var fr_units_total: u32 = 0;
             for (self.layout.row.?) |col, idx| {
                 switch (col) {
+                    .auto => {
+                        widths[idx] = min_single_widths[idx];
+                        space_used_by_fixed += widths[idx];
+                    },
                     .px => |pixels| {
                         widths[idx] = pixels;
                         space_used_by_fixed += pixels;

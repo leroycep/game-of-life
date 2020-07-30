@@ -204,7 +204,7 @@ pub const Game = struct {
                 tool_bar_flex_grid_area, fullscreen_flex_grid_area,
                 tool_bar_flex_grid_area, flex_grid_area,
             }) catch unreachable,
-            .row = std.mem.dupe(self.alloc, gui.Grid.Size, &[_]gui.Grid.Size{ .{ .px = 50 }, .{ .fr = 1 } }) catch unreachable,
+            .row = std.mem.dupe(self.alloc, gui.Grid.Size, &[_]gui.Grid.Size{ .{ .auto = .{} }, .{ .fr = 1 } }) catch unreachable,
         };
 
         self.gui.root = &grid_container.element;
