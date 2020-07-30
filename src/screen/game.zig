@@ -160,11 +160,26 @@ pub const Game = struct {
         tool_bar_flex.addChild(&glider_button.element) catch unreachable;
         tool_bar_flex.addChild(&pulsar_button.element) catch unreachable;
 
+        const fullscreen_button_label = gui.Label.init(&self.gui, "Fullscreen") catch unreachable;
+        const fullscreen_button = gui.Button.init(&self.gui, &fullscreen_button_label.element) catch unreachable;
+        fullscreen_button.onclick = fullscreen_clicked;
+        fullscreen_button.userdata = @ptrToInt(context);
+
+        const fullscreen_button_flex = gui.Flexbox.init(&self.gui) catch unreachable;
+        fullscreen_button_flex.direction = .Row;
+        fullscreen_button_flex.justification = .End;
+        fullscreen_button_flex.cross_align = .Start;
+        fullscreen_button_flex.addChild(&fullscreen_button.element) catch unreachable;
+
         const grid_container = gui.Grid.init(&self.gui) catch unreachable;
         const tool_bar_flex_grid_area = grid_container.addChild(&tool_bar_flex.element) catch unreachable;
+        const fullscreen_flex_grid_area = grid_container.addChild(&fullscreen_button_flex.element) catch unreachable;
         const flex_grid_area = grid_container.addChild(&flex.element) catch unreachable;
         grid_container.layout = .{
-            .areas = gui.Grid.AreaGrid.init(self.alloc, 2, 1, &[_]?usize{ tool_bar_flex_grid_area, flex_grid_area }) catch unreachable,
+            .areas = gui.Grid.AreaGrid.init(self.alloc, 2, 2, &[_]?usize{
+                tool_bar_flex_grid_area, fullscreen_flex_grid_area,
+                tool_bar_flex_grid_area, flex_grid_area,
+            }) catch unreachable,
             .row = std.mem.dupe(self.alloc, gui.Grid.Size, &[_]gui.Grid.Size{ .{ .px = 50 }, .{ .fr = 1 } }) catch unreachable,
         };
 
@@ -222,6 +237,11 @@ pub const Game = struct {
     fn play_pause_clicked(button: *gui.Button, userdata: ?usize) void {
         const self = @intToPtr(*@This(), userdata.?);
         self.toggle_play_pause();
+    }
+
+    fn fullscreen_clicked(button: *gui.Button, userdata: ?usize) void {
+        const context = @intToPtr(*Context, userdata.?);
+        context.request_fullscreen();
     }
 
     fn glider_clicked(button: *gui.Button, userdata: ?usize) void {

@@ -5,6 +5,7 @@ const common = @import("../common/common.zig");
 const Vec2i = common.Vec2i;
 
 pub extern fn consoleLogS(_: [*]const u8, _: c_uint) void;
+pub extern fn requestFullscreen() void;
 
 pub extern fn now_f64() f64;
 
@@ -47,5 +48,9 @@ pub const Context = struct {
             .move => 1,
             .grabbing => 2,
         });
+    }
+
+    pub fn request_fullscreen(self: @This()) void {
+        requestFullscreen();
     }
 };
