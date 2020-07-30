@@ -87,6 +87,8 @@ pub const Element = struct {
     minimumSizeFn: fn (*Element, *Gui) Vec2f,
     renderFn: fn (*Element, *Gui, Rect(f32), alpha: f64) void,
 
+    margin: Extents = .{},
+
     pub fn deinit(self: *@This()) void {
         self.deinitFn(self);
     }
@@ -96,11 +98,49 @@ pub const Element = struct {
     }
 
     pub fn minimumSize(self: *@This(), gui: *Gui) Vec2f {
-        return self.minimumSizeFn(self, gui);
+        const size = self.minimumSizeFn(self, gui);
+
+        return size.add(vec2f(
+            self.margin.left + self.margin.right,
+            self.margin.top + self.margin.bottom,
+        ));
     }
 
     pub fn render(self: *@This(), gui: *Gui, rect: Rect(f32), alpha: f64) void {
-        self.renderFn(self, gui, rect, alpha);
+        const min = rect.min.add(vec2f(self.margin.left, self.margin.top));
+        const max = rect.max.sub(vec2f(self.margin.right, self.margin.bottom));
+
+        if (min.x() > max.x() or min.y() > max.y()) {
+            // TODO: Log something?
+            return;
+        }
+
+        self.renderFn(self, gui, Rect(f32).initMinAndMax(min, max), alpha);
+    }
+};
+
+pub const Extents = struct {
+    top: f32 = 0,
+    bottom: f32 = 0,
+    left: f32 = 0,
+    right: f32 = 0,
+
+    pub fn tb_lr(tb: f32, lr: f32) @This() {
+        return .{
+            .top = tb,
+            .bottom = tb,
+            .left = lr,
+            .right = lr,
+        };
+    }
+
+    pub fn tblr(tblr: f32) @This() {
+        return .{
+            .top = tblr,
+            .bottom = tblr,
+            .left = tblr,
+            .right = tblr,
+        };
     }
 };
 

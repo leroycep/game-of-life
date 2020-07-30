@@ -144,11 +144,23 @@ pub const Game = struct {
         flex.addChild(&press_right_text.element) catch unreachable;
 
         const glider_button_label = gui.Label.init(&self.gui, "Glider") catch unreachable;
+        glider_button_label.element.margin = .{
+            .top = 10,
+            .left = 10,
+            .right = 10,
+            .bottom = 10,
+        };
         const glider_button = gui.Button.init(&self.gui, &glider_button_label.element) catch unreachable;
         glider_button.onclick = glider_clicked;
         glider_button.userdata = @ptrToInt(self);
 
         const pulsar_button_label = gui.Label.init(&self.gui, game.patterns.PULSAR.name) catch unreachable;
+        pulsar_button_label.element.margin = .{
+            .top = 10,
+            .left = 10,
+            .right = 10,
+            .bottom = 10,
+        };
         const pulsar_button = gui.Button.init(&self.gui, &pulsar_button_label.element) catch unreachable;
         pulsar_button.onclick = pulsar_clicked;
         pulsar_button.userdata = @ptrToInt(self);
@@ -161,6 +173,12 @@ pub const Game = struct {
         tool_bar_flex.addChild(&pulsar_button.element) catch unreachable;
 
         const fullscreen_button_label = gui.Label.init(&self.gui, "Fullscreen") catch unreachable;
+        fullscreen_button_label.element.margin = .{
+            .top = 10,
+            .left = 10,
+            .right = 10,
+            .bottom = 10,
+        };
         const fullscreen_button = gui.Button.init(&self.gui, &fullscreen_button_label.element) catch unreachable;
         fullscreen_button.onclick = fullscreen_clicked;
         fullscreen_button.userdata = @ptrToInt(context);
