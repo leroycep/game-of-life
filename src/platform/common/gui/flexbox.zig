@@ -97,8 +97,7 @@ pub const Flexbox = struct {
             .Click => |ev| {
                 if (self.prev_child_over) |prev| {
                     if (prev.rect.contains(ev.pos)) {
-                        _ = prev.element.onEvent(gui, .{ .Click = ev });
-                        return true;
+                        return prev.element.onEvent(gui, .{ .Click = ev });
                     }
                 }
                 return false;
