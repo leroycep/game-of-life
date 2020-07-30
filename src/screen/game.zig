@@ -129,6 +129,11 @@ pub const Game = struct {
         resize_button.onclick = resize_clicked;
         resize_button.userdata = @ptrToInt(self);
 
+        const glider_button_label = gui.Label.init(&self.gui, "Glider") catch unreachable;
+        const glider_button = gui.Button.init(&self.gui, &glider_button_label.element) catch unreachable;
+        glider_button.onclick = glider_clicked;
+        glider_button.userdata = @ptrToInt(self);
+
         const size_input_flex = gui.Flexbox.init(&self.gui) catch unreachable;
         size_input_flex.direction = .Col;
         size_input_flex.addChild(&self.x_size_input.element) catch unreachable;
@@ -141,6 +146,7 @@ pub const Game = struct {
         flex.addChild(&self.wrapping_checkbox.element) catch unreachable;
         flex.addChild(&resize_button.element) catch unreachable;
         flex.addChild(&play_pause_button.element) catch unreachable;
+        flex.addChild(&glider_button.element) catch unreachable;
         flex.addChild(&press_right_text.element) catch unreachable;
 
         self.gui.root = &flex.element;
@@ -197,6 +203,18 @@ pub const Game = struct {
     fn play_pause_clicked(button: *gui.Button, userdata: ?usize) void {
         const self = @intToPtr(*@This(), userdata.?);
         self.toggle_play_pause();
+    }
+
+    fn glider_clicked(button: *gui.Button, userdata: ?usize) void {
+        const self = @intToPtr(*@This(), userdata.?);
+        if (self.grid_clipboard) |clipboard| {
+            clipboard.deinit(self.alloc);
+            self.grid_clipboard = null;
+        }
+        self.grid_clipboard = game.patterns.GLIDER.to_grid_of_life(self.alloc) catch {
+            platform.warn("Could not allocate space for new grid", .{});
+            return;
+        };
     }
 
     fn toggle_play_pause(self: *@This()) void {

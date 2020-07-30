@@ -5,6 +5,8 @@ const vec2us = platform.vec2us;
 const vec2is = platform.vec2is;
 const Rect = platform.Rect;
 
+pub const patterns = @import("./patterns.zig");
+
 pub const GridOptions = struct {
     size: Vec(2, usize),
     edge_behaviour: enum {
