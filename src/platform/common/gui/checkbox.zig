@@ -85,19 +85,21 @@ pub const Checkbox = struct {
     pub fn render(element: *Element, gui: *Gui, rect: Rect(f32), alpha: f64) void {
         const self = @fieldParentPtr(@This(), "element", element);
 
+        const box_pos = rect.min.add(vec2f(0, (rect.size().y() - BOX_SIZE) / 2));
+
         if (self.mouse_over) {
             gui.renderer.set_fill_style(.{ .Color = Color.from_u32(0xBBBBBBFF) });
-            gui.renderer.fill_rect(rect.min.x(), rect.min.y(), BOX_SIZE, BOX_SIZE);
+            gui.renderer.fill_rect(box_pos.x(), box_pos.y(), BOX_SIZE, BOX_SIZE);
         }
 
         if (self.value) {
             gui.renderer.set_fill_style(.{ .Color = Color.from_u32(0x999999FF) });
-            gui.renderer.fill_rect(rect.min.x() + BOX_SIZE * 0.2, rect.min.y() + BOX_SIZE * 0.2, BOX_SIZE - BOX_SIZE * 0.4, BOX_SIZE - BOX_SIZE * 0.4);
+            gui.renderer.fill_rect(box_pos.x() + BOX_SIZE * 0.2, box_pos.y() + BOX_SIZE * 0.2, BOX_SIZE - BOX_SIZE * 0.4, BOX_SIZE - BOX_SIZE * 0.4);
         }
 
         gui.renderer.set_stroke_style(.{ .Color = Color.from_u32(0x666666FF) });
         gui.renderer.set_line_dash(&[_]f32{});
-        gui.renderer.stroke_rect(rect.min.x(), rect.min.y(), BOX_SIZE, BOX_SIZE);
+        gui.renderer.stroke_rect(box_pos.x(), box_pos.y(), BOX_SIZE, BOX_SIZE);
 
         const label_rect = Rect(f32).initMinAndMax(rect.min.add(vec2f(BOX_SIZE, 0)), rect.max);
         if (self.label) |label| {
