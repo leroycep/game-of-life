@@ -23,6 +23,11 @@ let env = {
     }
     console.log(s);
   },
+  requestFullscreen: () => {
+    if (container.requestFullscreen) {
+      container.requestFullscreen();
+    }
+  },
   now_f64: ptr => Date.now()
 };
 
@@ -237,10 +242,3 @@ fetch("game-of-life-web.wasm")
         canvas.height = rect.height;
     });
   });
-
-function goFullscreen() {
-  if (container.requestFullscreen) {
-    container.requestFullscreen();
-  }
-}
-document.getElementById("fullscreen-button").addEventListener("click", goFullscreen);
