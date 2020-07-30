@@ -516,14 +516,23 @@ pub const Game = struct {
 
         // Render the clipboard over the other grid
         if (self.grid_clipboard) |clipboard| {
-            context.renderer.set_fill_style(.{ .Color = .{ .r = 0x77, .g = 0x77, .b = 0x77, .a = 0xAA } });
-            const clipboard_offset = self.camera_relative_pos_to_cursor(self.cell_pos_to_camera_relative(self.camera_relative_pos_to_cell(self.cursor_pos_to_camera_relative(self.cursor_pos)).floor()));
+            const clipboard_grid_offset = self.cursor_pos_to_cell(self.cursor_pos);
+            const clipboard_offset = self.camera_relative_pos_to_cursor(self.cell_pos_to_camera_relative(clipboard_grid_offset.intToFloat(f32)));
             const clipboard_center = clipboard.options.size.scalDiv(2).intCast(isize);
             var clipboard_cell_pos = Vec(2, isize).init(0, 0);
-            while (clipboard_cell_pos.y() <= clipboard.options.size.y()) : (clipboard_cell_pos.v[1] += 1) {
+            while (clipboard_cell_pos.y() < clipboard.options.size.y()) : (clipboard_cell_pos.v[1] += 1) {
                 clipboard_cell_pos.v[0] = 0;
-                while (clipboard_cell_pos.x() <= clipboard.options.size.x()) : (clipboard_cell_pos.v[0] += 1) {
+                while (clipboard_cell_pos.x() < clipboard.options.size.x()) : (clipboard_cell_pos.v[0] += 1) {
                     if (clipboard.get(clipboard_cell_pos)) {
+                        context.renderer.set_fill_style(.{ .Color = .{ .r = 0x77, .g = 0x77, .b = 0x77, .a = 0xAA } });
+                        context.renderer.fill_rect(
+                            clipboard_offset.x() + @intToFloat(f32, clipboard_cell_pos.x() - clipboard_center.x()) * self.scale,
+                            clipboard_offset.y() + @intToFloat(f32, clipboard_cell_pos.y() - clipboard_center.y()) * self.scale,
+                            self.scale,
+                            self.scale,
+                        );
+                    } else if (self.grid.get(clipboard_grid_offset.add(clipboard_cell_pos).sub(clipboard_center))) {
+                        context.renderer.set_fill_style(.{ .Color = .{ .r = 0x77, .g = 0x11, .b = 0x11, .a = 0xAA } });
                         context.renderer.fill_rect(
                             clipboard_offset.x() + @intToFloat(f32, clipboard_cell_pos.x() - clipboard_center.x()) * self.scale,
                             clipboard_offset.y() + @intToFloat(f32, clipboard_cell_pos.y() - clipboard_center.y()) * self.scale,
