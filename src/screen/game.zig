@@ -102,7 +102,11 @@ pub const Game = struct {
         self.generation_text.text_align = .Left;
         self.generation_text.text_baseline = .Middle;
 
-        self.paused_text = gui.Label.init(&self.gui, "Paused") catch unreachable;
+        self.paused_text = gui.Label.init(&self.gui, "Start") catch unreachable;
+        self.paused_text.element.margin = .{
+            .left = 10,
+            .right = 10,
+        };
         self.paused_text.text_align = .Center;
         self.paused_text.text_baseline = .Middle;
         const play_pause_button = gui.Button.init(&self.gui, &self.paused_text.element) catch unreachable;
@@ -291,7 +295,7 @@ pub const Game = struct {
 
     fn toggle_play_pause(self: *@This()) void {
         self.paused = !self.paused;
-        self.paused_text.text = if (self.paused) "Paused" else "Running";
+        self.paused_text.text = if (self.paused) "Start" else "Stop";
     }
 
     pub fn onEvent(screenPtr: *Screen, context: *Context, event: platform.Event) void {
