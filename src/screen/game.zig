@@ -124,6 +124,7 @@ pub const Game = struct {
         self.y_size_input.text.outStream().print("{}", .{self.grid.options.size.y()}) catch unreachable;
 
         const wrapping_checkbox_label = gui.Label.init(&self.gui, "Wrapping") catch unreachable;
+        wrapping_checkbox_label.element.margin = .{ .left = 2 };
         self.wrapping_checkbox = gui.Checkbox.init(&self.gui, &wrapping_checkbox_label.element) catch unreachable;
         self.wrapping_checkbox.onchange = wrapping_changed;
         self.wrapping_checkbox.userdata = @ptrToInt(self);
@@ -144,6 +145,7 @@ pub const Game = struct {
 
         const flex = gui.Flexbox.init(&self.gui) catch unreachable;
         flex.cross_align = .End;
+        flex.element.margin = .{ .left = 5, .right = 5, .bottom = 2 };
         flex.addChild(&self.generation_text.element) catch unreachable;
         flex.addChild(&size_input_flex.element) catch unreachable;
         flex.addChild(&resize_button.element) catch unreachable;
