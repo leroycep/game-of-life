@@ -2,6 +2,7 @@ const app = @import("app.zig");
 const constants = @import("constants.zig");
 const platform = @import("platform.zig");
 const std = @import("std");
+const builtin = @import("builtin");
 const Vec2i = platform.Vec2i;
 const zee_alloc = @import("zee_alloc");
 
@@ -120,4 +121,12 @@ export fn render(alpha: f64) void {
     context.renderer.begin();
     app.render(&context, alpha);
     context.renderer.flush();
+}
+
+pub fn panic(msg: []const u8, error_return_trace: ?*builtin.StackTrace) noreturn {
+    platform.consoleLogS(msg.ptr, msg.len);
+    platform.warn("{}", .{error_return_trace});
+    while (true) {
+        @breakpoint();
+    }
 }
