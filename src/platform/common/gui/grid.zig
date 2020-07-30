@@ -76,7 +76,7 @@ pub const Grid = struct {
         element: *Element,
         min_size: Vec2f,
         rect: Rect(f32),
-        track_span: Rect(usize),
+        track_span: ?Rect(usize),
     };
 
     pub fn init(gui: *Gui) !*@This() {
@@ -171,6 +171,10 @@ pub const Grid = struct {
         const self = @fieldParentPtr(@This(), "element", element);
 
         if (self.layout.areas) |areas| {
+            for (self.children.items) |*child| {
+                child.track_span = null;
+            }
+
             var x: usize = 0;
             var y: usize = 0;
             while (y < areas.height) {
@@ -184,24 +188,29 @@ pub const Grid = struct {
                 const area_id = areas.get(x, y) orelse continue;
                 const child = &self.children.items[area_id];
 
-                child.track_span.min.v[0] = x;
+                if (child.track_span != null) continue;
+                var track_span: Rect(usize) = undefined;
+
+                track_span.min.v[0] = x;
                 while (x + 1 < areas.width and areas.get(x + 1, y).? == area_id) {
                     x += 1;
                 }
-                child.track_span.max.v[0] = x;
+                track_span.max.v[0] = x;
 
-                child.track_span.min.v[1] = y;
+                track_span.min.v[1] = y;
                 var j = y;
                 expand_down: while (j + 1 < areas.height) {
-                    var i = child.track_span.min.x();
-                    while (i <= child.track_span.max.x()) : (i += 1) {
+                    var i = track_span.min.x();
+                    while (i <= track_span.max.x()) : (i += 1) {
                         if (areas.get(i, j + 1) != area_id) {
                             break :expand_down;
                         }
                     }
                     j += 1;
                 }
-                child.track_span.max.v[1] = j;
+                track_span.max.v[1] = j;
+
+                child.track_span = track_span;
             }
 
             for (self.children.items) |*child| {
@@ -253,14 +262,15 @@ pub const Grid = struct {
             for (self.children.items) |*child| {
                 child.rect = Rect(f32){
                     .min = vec2f(
-                        rect.min.x() + track_x[child.track_span.min.x()],
-                        rect.min.y() + @intToFloat(f32, child.track_span.min.y()) * height_per_component,
+                        rect.min.x() + track_x[child.track_span.?.min.x()],
+                        rect.min.y() + @intToFloat(f32, child.track_span.?.min.y()) * height_per_component,
                     ),
                     .max = vec2f(
-                        rect.min.x() + track_x[child.track_span.max.x() + 1],
-                        rect.min.y() + @intToFloat(f32, child.track_span.max.y() + 1) * height_per_component,
+                        rect.min.x() + track_x[child.track_span.?.max.x() + 1],
+                        rect.min.y() + @intToFloat(f32, child.track_span.?.max.y() + 1) * height_per_component,
                     ),
                 };
+
                 child.element.render(gui, child.rect, alpha);
             }
         }
