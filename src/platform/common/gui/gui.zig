@@ -11,6 +11,7 @@ const vec2f = platform.vec2f;
 
 pub const Label = @import("./label.zig").Label;
 pub const Flexbox = @import("./flexbox.zig").Flexbox;
+pub const Grid = @import("./grid.zig").Grid;
 pub const TextInput = @import("./text_input.zig").TextInput;
 pub const Button = @import("./button.zig").Button;
 pub const Checkbox = @import("./checkbox.zig").Checkbox;

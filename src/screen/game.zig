@@ -149,7 +149,14 @@ pub const Game = struct {
         flex.addChild(&glider_button.element) catch unreachable;
         flex.addChild(&press_right_text.element) catch unreachable;
 
-        self.gui.root = &flex.element;
+        const grid_container = gui.Grid.init(&self.gui) catch unreachable;
+        const flex_grid_area = grid_container.addChild(&flex.element) catch unreachable;
+        grid_container.layout = .{
+            .areas = gui.Grid.AreaGrid.init(self.alloc, 2, 1, &[_]?usize{ null, flex_grid_area }) catch unreachable,
+            .row = std.mem.dupe(self.alloc, gui.Grid.Size, &[_]gui.Grid.Size{ .{ .px = 200 }, .{ .fr = 1 } }) catch unreachable,
+        };
+
+        self.gui.root = &grid_container.element;
     }
 
     fn resize_clicked(button: *gui.Button, userdata: ?usize) void {
