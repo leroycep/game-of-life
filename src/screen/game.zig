@@ -325,11 +325,6 @@ pub const Game = struct {
                     var src_rect = platform.Rect(isize).initTwoPos(self.select_start_cell, end_cell);
                     src_rect.max = src_rect.max.add(Vec(2, isize).init(1, 1));
 
-                    // Find the smallest rect that contains cells
-                    src_rect = self.grid.min_rect(src_rect) orelse {
-                        // There were no living cells in the rect, don't copy anything
-                        return;
-                    };
                     if (src_rect.size().x() <= 1 and src_rect.size().y() <= 1) {
                         // Only one cell in the selection, don't copy it
                         return;
@@ -519,6 +514,17 @@ pub const Game = struct {
             const clipboard_grid_offset = self.cursor_pos_to_cell(self.cursor_pos);
             const clipboard_offset = self.camera_relative_pos_to_cursor(self.cell_pos_to_camera_relative(clipboard_grid_offset.intToFloat(f32)));
             const clipboard_center = clipboard.options.size.scalDiv(2).intCast(isize);
+
+            // Draw box around clipboard
+            context.renderer.set_stroke_style(.{ .Color = .{ .r = 0x11, .g = 0x77, .b = 0x11, .a = 0xAA } });
+            context.renderer.set_line_dash(&[_]f32{});
+            context.renderer.stroke_rect(
+                clipboard_offset.x() - @intToFloat(f32, clipboard_center.x()) * self.scale,
+                clipboard_offset.y() - @intToFloat(f32, clipboard_center.y()) * self.scale,
+                @intToFloat(f32, clipboard.options.size.x()) * self.scale,
+                @intToFloat(f32, clipboard.options.size.y()) * self.scale,
+            );
+
             var clipboard_cell_pos = Vec(2, isize).init(0, 0);
             while (clipboard_cell_pos.y() < clipboard.options.size.y()) : (clipboard_cell_pos.v[1] += 1) {
                 clipboard_cell_pos.v[0] = 0;
