@@ -15,6 +15,7 @@ pub const Grid = @import("./grid.zig").Grid;
 pub const TextInput = @import("./text_input.zig").TextInput;
 pub const Button = @import("./button.zig").Button;
 pub const Checkbox = @import("./checkbox.zig").Checkbox;
+pub const Box = @import("./box.zig").Box;
 
 // A dummy type to use with fieldParentPtr
 pub const Props = usize;

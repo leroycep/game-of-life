@@ -144,7 +144,14 @@ pub const Game = struct {
         flex.addChild(&press_right_text.element) catch unreachable;
 
         const glider_button_label = gui.Label.init(&self.gui, "Glider") catch unreachable;
-        const glider_button = gui.Button.init(&self.gui, &glider_button_label.element) catch unreachable;
+        const glider_button_box = gui.Box.init(&self.gui, &glider_button_label.element) catch unreachable;
+        glider_button_box.padding = .{
+            .top = 10,
+            .bottom = 10,
+            .left = 10,
+            .right = 10,
+        };
+        const glider_button = gui.Button.init(&self.gui, &glider_button_box.element) catch unreachable;
         glider_button.onclick = glider_clicked;
         glider_button.userdata = @ptrToInt(self);
 
