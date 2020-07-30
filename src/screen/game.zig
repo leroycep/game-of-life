@@ -293,6 +293,13 @@ pub const Game = struct {
                 .Right => {
                     self.select_start_cell = self.cursor_pos_to_cell(ev.pos.intToFloat(f32));
                     self.is_selecting = true;
+
+                    // get rid of the previous grid_clipboard
+                    if (self.grid_clipboard) |clipboard| {
+                        clipboard.deinit(self.alloc);
+                        self.grid_clipboard = null;
+                    }
+
                     // TODO: chose a cursor for select
                     //context.set_cursor(.grabbing);
                 },
@@ -308,21 +315,15 @@ pub const Game = struct {
                     self.is_selecting = false;
                     context.set_cursor(.default);
 
-                    // Copy selection to grid clipboard
-                    const end_cell = self.cursor_pos_to_cell(ev.pos.intToFloat(f32));
-                    var src_rect = platform.Rect(isize).initTwoPos(self.select_start_cell, end_cell);
-                    src_rect.max = src_rect.max.add(Vec(2, isize).init(1, 1));
-
-                    // get rid of the previous grid_clipboard
-                    if (self.grid_clipboard) |clipboard| {
-                        clipboard.deinit(self.alloc);
-                        self.grid_clipboard = null;
-                    }
-
                     if (!self.paused) {
                         // Don't copy the grid while the simulation is running, only allow emptying the clipboard
                         return;
                     }
+
+                    // Copy selection to grid clipboard
+                    const end_cell = self.cursor_pos_to_cell(ev.pos.intToFloat(f32));
+                    var src_rect = platform.Rect(isize).initTwoPos(self.select_start_cell, end_cell);
+                    src_rect.max = src_rect.max.add(Vec(2, isize).init(1, 1));
 
                     // Find the smallest rect that contains cells
                     src_rect = self.grid.min_rect(src_rect) orelse {
