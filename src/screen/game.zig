@@ -15,11 +15,11 @@ const game = @import("../game.zig");
 const GridOfLife = game.GridOfLife;
 const constants = @import("../constants.zig");
 
-const DEFAULT_GRID_WIDTH = 25;
-const DEFAULT_GRID_HEIGHT = 25;
+const DEFAULT_GRID_WIDTH = 100;
+const DEFAULT_GRID_HEIGHT = 100;
 const CELL_WIDTH = 16;
 const CELL_HEIGHT = 16;
-const MIN_SCALE = 8;
+const MIN_SCALE = 2;
 const MAX_SCALE = 1024;
 
 const TEXT_PRESS_RIGHT = "Press → to advance one step";
