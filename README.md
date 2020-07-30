@@ -49,3 +49,11 @@ given I have the time.
   - Placing schmatics is cool and all, but I need my gliders to go in arbitrary
     directions!
   - Nobodies got time to draw everything out!
+- [ ] Native Application
+  - I got an initial implementation of the app working using SDL and
+    [Pathfinder][], but I stopped supporting it so I could spend more time on
+    features.
+  - That said, most of the code is written with native support in mind. Porting
+    wouldn't require reimplementing everything.
+
+[pathfinder]: https://github.com/servo/pathfinder
