@@ -35,6 +35,7 @@ pub const Flexbox = struct {
     pub const Justify = enum {
         Start,
         SpaceBetween,
+        End,
     };
 
     pub const CrossAlign = enum {
@@ -173,16 +174,16 @@ pub const Flexbox = struct {
         const num_items = @intToFloat(f32, self.children.items.len);
 
         const space_before: f32 = switch (self.justification) {
-            .Start => 0,
-            .SpaceBetween => 0,
+            .Start, .SpaceBetween => 0,
+            .End => main_space_total - main_space_used,
         };
         const space_between: f32 = switch (self.justification) {
-            .Start => 0,
+            .Start, .End => 0,
             .SpaceBetween => (main_space_total - main_space_used) / std.math.max(num_items - 1, 1),
         };
         const space_after: f32 = switch (self.justification) {
             .Start => main_space_total - main_space_used,
-            .SpaceBetween => 0,
+            .SpaceBetween, .End => 0,
         };
 
         var pos = rect.min;
