@@ -138,8 +138,8 @@ pub const Game = struct {
         flex.cross_align = .End;
         flex.addChild(&self.generation_text.element) catch unreachable;
         flex.addChild(&size_input_flex.element) catch unreachable;
-        flex.addChild(&self.wrapping_checkbox.element) catch unreachable;
         flex.addChild(&resize_button.element) catch unreachable;
+        flex.addChild(&self.wrapping_checkbox.element) catch unreachable;
         flex.addChild(&play_pause_button.element) catch unreachable;
         flex.addChild(&press_right_text.element) catch unreachable;
 
