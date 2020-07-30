@@ -111,6 +111,7 @@ fetch("game-of-life-web.wasm")
     });
 
     canvas.addEventListener("mousedown", (ev) => {
+      canvas.focus();
       const rect = canvas.getBoundingClientRect();
       const zigConst = mouseBtnCodeMap[ev.button];
       if (zigConst !== undefined) {
@@ -152,9 +153,12 @@ fetch("game-of-life-web.wasm")
       Space: ex.SCANCODE_SPACE
     };
     document.addEventListener("keydown", ev => {
+      if (document.activeElement != canvas) return;
+
       if (ev.defaultPrevented) {
         return;
       }
+      ev.preventDefault();
 
       let zigKeyConst = keyMap[ev.key];
       if (!zigKeyConst) {
