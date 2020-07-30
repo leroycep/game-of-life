@@ -129,11 +129,6 @@ pub const Game = struct {
         resize_button.onclick = resize_clicked;
         resize_button.userdata = @ptrToInt(self);
 
-        const glider_button_label = gui.Label.init(&self.gui, "Glider") catch unreachable;
-        const glider_button = gui.Button.init(&self.gui, &glider_button_label.element) catch unreachable;
-        glider_button.onclick = glider_clicked;
-        glider_button.userdata = @ptrToInt(self);
-
         const size_input_flex = gui.Flexbox.init(&self.gui) catch unreachable;
         size_input_flex.direction = .Col;
         size_input_flex.addChild(&self.x_size_input.element) catch unreachable;
@@ -146,14 +141,24 @@ pub const Game = struct {
         flex.addChild(&self.wrapping_checkbox.element) catch unreachable;
         flex.addChild(&resize_button.element) catch unreachable;
         flex.addChild(&play_pause_button.element) catch unreachable;
-        flex.addChild(&glider_button.element) catch unreachable;
         flex.addChild(&press_right_text.element) catch unreachable;
 
+        const glider_button_label = gui.Label.init(&self.gui, "Glider") catch unreachable;
+        const glider_button = gui.Button.init(&self.gui, &glider_button_label.element) catch unreachable;
+        glider_button.onclick = glider_clicked;
+        glider_button.userdata = @ptrToInt(self);
+
+        const tool_bar_flex = gui.Flexbox.init(&self.gui) catch unreachable;
+        tool_bar_flex.direction = .Col;
+        tool_bar_flex.cross_align = .Center;
+        tool_bar_flex.addChild(&glider_button.element) catch unreachable;
+
         const grid_container = gui.Grid.init(&self.gui) catch unreachable;
+        const tool_bar_flex_grid_area = grid_container.addChild(&tool_bar_flex.element) catch unreachable;
         const flex_grid_area = grid_container.addChild(&flex.element) catch unreachable;
         grid_container.layout = .{
-            .areas = gui.Grid.AreaGrid.init(self.alloc, 2, 1, &[_]?usize{ null, flex_grid_area }) catch unreachable,
-            .row = std.mem.dupe(self.alloc, gui.Grid.Size, &[_]gui.Grid.Size{ .{ .px = 200 }, .{ .fr = 1 } }) catch unreachable,
+            .areas = gui.Grid.AreaGrid.init(self.alloc, 2, 1, &[_]?usize{ tool_bar_flex_grid_area, flex_grid_area }) catch unreachable,
+            .row = std.mem.dupe(self.alloc, gui.Grid.Size, &[_]gui.Grid.Size{ .{ .px = 50 }, .{ .fr = 1 } }) catch unreachable,
         };
 
         self.gui.root = &grid_container.element;
