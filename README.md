@@ -9,7 +9,7 @@ This game was built with Zig `0.6.0+df1a2ecd3`. Make sure you have at least that
 version or newer. As Zig is still pre-1.0, the build may break. Please file an
 issue if the build breaks!
 
-Anyway, once you have Zig installed, do the following
+Anyway, once you have Zig installed, do the following:
 
 ```bash
 $ git clone https://github.com/leroycep/game-of-life.git --recursive
