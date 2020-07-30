@@ -16,9 +16,24 @@
 <body>
 
     <div class="content">
+        <h1>Conway's Game of Life</h1>
+
         <div id="container">
             <canvas id="canvas-webgl" width="640", height="480"></canvas>
         </div>
+
+        <article>
+            <h2>What is this?</h2>
+            <p>This is an implementation of <a href="https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life">Conway's Game of Life</a>.
+            It's a zero player game, where you set up some initial conditions, press play, and then sit back and watch what happens.
+            <p>In Conway's Game of Life, there is a grid that cells live on. A cell lives and dies by the following rules:
+            <ul>
+                <li>If a cell has 2 or 3 neighbors, they keep on living 🙂
+                <li>If a spot on the grid is empty and has 3 neighbors, a new cell is created 🐣
+                <li>If a cell has 1 or 0 neighbors, they die of loneliness ⚰️
+                <li>If a cell has more than 3 neighbors, they die of overcrowding ⚰️
+            </ul>
+        </article>
     </div>
 
     <script type="module" src="./js/main.js"></script>
