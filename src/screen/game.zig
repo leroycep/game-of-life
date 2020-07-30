@@ -162,6 +162,9 @@ pub const Game = struct {
             .bottom = 10,
         };
         const pulsar_button = gui.Button.init(&self.gui, &pulsar_button_label.element) catch unreachable;
+        pulsar_button.element.margin = .{
+            .top = 5,
+        };
         pulsar_button.onclick = pulsar_clicked;
         pulsar_button.userdata = @ptrToInt(self);
 
