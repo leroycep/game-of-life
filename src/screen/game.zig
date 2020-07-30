@@ -129,6 +129,10 @@ pub const Game = struct {
         self.wrapping_checkbox.userdata = @ptrToInt(self);
 
         const resize_button_label = gui.Label.init(&self.gui, "Resize") catch unreachable;
+        resize_button_label.element.margin = .{
+            .left = 10,
+            .right = 10,
+        };
         const resize_button = gui.Button.init(&self.gui, &resize_button_label.element) catch unreachable;
         resize_button.onclick = resize_clicked;
         resize_button.userdata = @ptrToInt(self);
