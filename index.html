@@ -23,6 +23,30 @@
         </div>
 
         <article>
+            <h2>Controls</h2>
+            Press the button that says "paused" to start the simulation! The grid cannot be edited while the simulation is running.
+            <ul>
+                <li>Press spacebar to toggle whether simulation is running or paused
+                <li>Press the right arrow key to advance the simulation one step while paused
+                <li>Press the up arrow key to make the simulation slower
+                <li>Press the down arrow key to make the simulation faster
+                <li>Left click to toggle a cell on or off
+                <li>Left click and drag to draw a line of cells
+                <li>Middle click on the canvas to pan around
+                <li>Right click and drag to select a portion of the grid to copy
+                <li>Left click with the copy to place it on the grid
+                <li>Right click once to empty the clipboard
+            </ul>
+
+            <p>On the left of the game window, there is a list of buttons. Click one to copy a schematic to your clipboard! 📋
+
+            <p>You can resize the canvas! To do so, select the text boxes at the bottom of the game window, enter a new size,
+            and then press the resize button next to it. Pressing resize will clear the canvas if you haven't changed the size.
+
+            <p>The "wrapping" checkbox toggles the behavior of cells at the edge of the grid. When it's enabled, cells will treat
+            the edge as if it were connected to the other side of the grid. When it's disabled, the edge is treated as a permanently
+            dead spot.
+
             <h2>What is this?</h2>
             <p>This is an implementation of <a href="https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life">Conway's Game of Life</a>.
             It's a zero player game, where you set up some initial conditions, press play, and then sit back and watch what happens.
