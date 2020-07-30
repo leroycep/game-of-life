@@ -38,3 +38,25 @@ pub const GLIDER = try Pattern.check(.{
         false, false, true,
     },
 });
+
+pub const PULSAR = try Pattern.check(.{
+    .name = "Pulsar",
+    .size = vec2us(15, 15),
+    .cells = &[_]bool{
+        false, false, false, false, true,  false, false, false, false, false, true,  false, false, false, false,
+        false, false, false, false, true,  false, false, false, false, false, true,  false, false, false, false,
+        false, false, false, false, true,  true,  false, false, false, true,  true,  false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+        true,  true,  true,  false, false, true,  true,  false, true,  true,  false, false, true,  true,  true,
+        false, false, true,  false, true,  false, true,  false, true,  false, true,  false, true,  false, false,
+        false, false, false, false, true,  true,  false, false, false, true,  true,  false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, true,  true,  false, false, false, true,  true,  false, false, false, false,
+        false, false, true,  false, true,  false, true,  false, true,  false, true,  false, true,  false, false,
+        true,  true,  true,  false, false, true,  true,  false, true,  true,  false, false, true,  true,  true,
+        false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, true,  true,  false, false, false, true,  true,  false, false, false, false,
+        false, false, false, false, true,  false, false, false, false, false, true,  false, false, false, false,
+        false, false, false, false, true,  false, false, false, false, false, true,  false, false, false, false,
+    },
+});

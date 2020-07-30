@@ -148,10 +148,17 @@ pub const Game = struct {
         glider_button.onclick = glider_clicked;
         glider_button.userdata = @ptrToInt(self);
 
+        const pulsar_button_label = gui.Label.init(&self.gui, game.patterns.PULSAR.name) catch unreachable;
+        const pulsar_button = gui.Button.init(&self.gui, &pulsar_button_label.element) catch unreachable;
+        pulsar_button.onclick = pulsar_clicked;
+        pulsar_button.userdata = @ptrToInt(self);
+
         const tool_bar_flex = gui.Flexbox.init(&self.gui) catch unreachable;
         tool_bar_flex.direction = .Col;
+        tool_bar_flex.justification = .Start;
         tool_bar_flex.cross_align = .Center;
         tool_bar_flex.addChild(&glider_button.element) catch unreachable;
+        tool_bar_flex.addChild(&pulsar_button.element) catch unreachable;
 
         const grid_container = gui.Grid.init(&self.gui) catch unreachable;
         const tool_bar_flex_grid_area = grid_container.addChild(&tool_bar_flex.element) catch unreachable;
@@ -224,6 +231,18 @@ pub const Game = struct {
             self.grid_clipboard = null;
         }
         self.grid_clipboard = game.patterns.GLIDER.to_grid_of_life(self.alloc) catch {
+            platform.warn("Could not allocate space for new grid", .{});
+            return;
+        };
+    }
+
+    fn pulsar_clicked(button: *gui.Button, userdata: ?usize) void {
+        const self = @intToPtr(*@This(), userdata.?);
+        if (self.grid_clipboard) |clipboard| {
+            clipboard.deinit(self.alloc);
+            self.grid_clipboard = null;
+        }
+        self.grid_clipboard = game.patterns.PULSAR.to_grid_of_life(self.alloc) catch {
             platform.warn("Could not allocate space for new grid", .{});
             return;
         };
