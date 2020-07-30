@@ -11,6 +11,13 @@ pub const Pattern = struct {
     size: Vec(2, usize),
     cells: []const bool,
 
+    pub fn check(self: @This()) !@This() {
+        if (self.size.x() * self.size.y() != self.cells.len) {
+            return error.PatternSizeInvalid;
+        }
+        return self;
+    }
+
     pub fn to_grid_of_life(self: @This(), alloc: *Allocator) !GridOfLife {
         var grid = try GridOfLife.init(alloc, .{
             .size = self.size,
@@ -22,7 +29,7 @@ pub const Pattern = struct {
     }
 };
 
-pub const GLIDER = Pattern{
+pub const GLIDER = try Pattern.check(.{
     .name = "Glider",
     .size = vec2us(3, 3),
     .cells = &[_]bool{
@@ -30,4 +37,4 @@ pub const GLIDER = Pattern{
         true,  false, true,
         false, false, true,
     },
-};
+});
