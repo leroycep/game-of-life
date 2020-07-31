@@ -522,6 +522,7 @@ pub const Game = struct {
         const top_left_cell = self.cursor_pos_to_cell(vec2f(0, 0)).maxComponents(Vec(2, isize).init(0, 0));
         const bottom_right_cell = self.cursor_pos_to_cell(self.screen_size).add(Vec(2, isize).init(1, 1)).minComponents(self.grid.options.size.intCast(isize));
 
+        // Render the grid lines
         context.renderer.begin_path();
         var y: isize = top_left_cell.y();
         while (y <= bottom_right_cell.y()) : (y += 1) {
@@ -547,6 +548,7 @@ pub const Game = struct {
         }
         context.renderer.stroke();
 
+        // Render the grid cells
         context.renderer.set_fill_style(.{ .Color = .{ .r = 100, .g = 100, .b = 100, .a = 255 } });
 
         y = top_left_cell.y();
