@@ -4,7 +4,7 @@ const platform = @import("../../../platform.zig");
 const Allocator = std.mem.Allocator;
 const Context = platform.Context;
 const Renderer = platform.Renderer;
-const Scancode = platform.Scancode;
+const Keycode = platform.Keycode;
 const Rect = platform.Rect;
 const Vec2f = platform.Vec2f;
 const vec2f = platform.vec2f;
@@ -149,7 +149,7 @@ pub const Event = union(enum) {
     MouseEnter: MouseEvent,
     MouseLeave: MouseEvent,
     Click: MouseEvent,
-    KeyDown: Scancode,
+    KeyDown: Keycode,
     TextInput: []const u8,
 };
 

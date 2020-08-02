@@ -7,8 +7,12 @@ const Timer = std.time.Timer;
 pub fn main() !void {
     const alloc = std.heap.c_allocator;
 
+    std.log.info(.PlatformNative, "Hello, world", .{});
+
     var context = try platform.init(alloc, constants.APP_NAME, 640, 480);
     defer context.deinit();
+
+    std.log.info(.PlatformNative, "application initialized", .{});
 
     app.onInit(&context);
 

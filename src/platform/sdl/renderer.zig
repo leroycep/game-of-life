@@ -3,7 +3,9 @@ const common = @import("../common/common.zig");
 const FillStyle = common.renderer.FillStyle;
 const LineCap = common.renderer.LineCap;
 const TextAlign = common.renderer.TextAlign;
+const TextBaseline = common.renderer.TextBaseline;
 const Vec2f = @import("../../utils.zig").Vec2f;
+const TextMetrics = common.renderer.TextMetrics;
 const c = @import("./c.zig");
 
 pub const Renderer = struct {
@@ -68,6 +70,10 @@ pub const Renderer = struct {
         c.PFCanvasFillRect(self.canvas.?, &c.PFRectF{ .origin = .{ .x = x, .y = y }, .lower_right = .{ .x = x + width, .y = y + height } });
     }
 
+    pub fn stroke_rect(self: *@This(), x: f32, y: f32, width: f32, height: f32) void {
+        c.PFCanvasStrokeRect(self.canvas.?, &c.PFRectF{ .origin = .{ .x = x, .y = y }, .lower_right = .{ .x = x + width, .y = y + height } });
+    }
+
     pub fn set_text_align(self: *@This(), text_align: TextAlign) void {
         c.PFCanvasSetTextAlign(self.canvas.?, switch (text_align) {
             .Center => c.PF_TEXT_ALIGN_CENTER,
@@ -76,8 +82,28 @@ pub const Renderer = struct {
         });
     }
 
+    pub fn set_text_baseline(self: *@This(), text_baseline: TextBaseline) void {
+        c.PFCanvasSetTextBaseline(self.canvas.?, switch (text_baseline) {
+            .Middle => c.PF_TEXT_BASELINE_MIDDLE,
+            .Top => c.PF_TEXT_BASELINE_TOP,
+            .Bottom => c.PF_TEXT_BASELINE_BOTTOM,
+        });
+    }
+
     pub fn fill_text(self: *@This(), text: []const u8, x: f32, y: f32) void {
         c.PFCanvasFillText(self.canvas.?, text.ptr, text.len, &c.PFVector2F{ .x = x, .y = y });
+    }
+
+    pub fn measure_text(self: *@This(), text: []const u8) TextMetrics {
+        var text_metrics: c.PFTextMetrics = undefined;
+        c.PFCanvasMeasureText(self.canvas.?, text.ptr, text.len, &text_metrics);
+        return .{
+            .width = text_metrics.width,
+            .actualBoundingBoxLeft = 5,
+            .actualBoundingBoxRight = 5,
+            .actualBoundingBoxAscent = 5,
+            .actualBoundingBoxDescent = 5,
+        };
     }
 
     pub fn move_to(self: *@This(), x: f32, y: f32) void {

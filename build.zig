@@ -13,7 +13,7 @@ pub fn build(b: *Builder) void {
 
     const native = b.addExecutable("game-of-life", "src/main_native.zig");
     native.linkSystemLibrary("SDL2");
-    native.linkSystemLibrary("pathfinder_c");
+    native.linkSystemLibrary("pathfinder");
     native.linkLibC();
     native.setTarget(target);
     native.setBuildMode(mode);
