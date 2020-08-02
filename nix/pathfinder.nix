@@ -10,7 +10,7 @@ pkgs.rustPlatform.buildRustPackage rec {
 
   src = sources.pathfinder;
 
-  cargoSha256 = "1sq4frs67chjfky1331cyw5mnxdqqplhbva426iiqi8h7hg063ij";
+  cargoSha256 = "0bbpvp8kzm5ccvj13q1lb34n83jm3i0pi2yyhscw7wyvhwcvj44b";
 
   nativeBuildInputs = [ pkgs.pkg-config cargo-c ];
   buildInputs = with pkgs; [ xorg.libX11 freetype gtk3 ];

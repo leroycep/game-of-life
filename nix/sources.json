@@ -67,10 +67,10 @@
         "homepage": "",
         "owner": "servo",
         "repo": "pathfinder",
-        "rev": "ac405fb98890fa30d2c26f0a56bec97713bf73c0",
-        "sha256": "1pv6cnyh75f1n24q8n065ra57zsni013khr9w9dn6ivf68srmp2a",
+        "rev": "bad735e88d16ec718ff3e1897ed7433908c9033b",
+        "sha256": "1f68zx1s5fyqic9hq1f7axmis9h22h7270ywi7k8af33m6ava14d",
         "type": "tarball",
-        "url": "https://github.com/servo/pathfinder/archive/ac405fb98890fa30d2c26f0a56bec97713bf73c0.tar.gz",
+        "url": "https://github.com/servo/pathfinder/archive/bad735e88d16ec718ff3e1897ed7433908c9033b.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "wasmer": {
