@@ -20,6 +20,9 @@ export const SCANCODE_DOWN = @enumToInt(platform.Scancode.DOWN);
 export const SCANCODE_SPACE = @enumToInt(platform.Scancode.SPACE);
 export const SCANCODE_BACKSPACE = @enumToInt(platform.Scancode.BACKSPACE);
 
+export const KEYCODE_UNKNOWN = @enumToInt(platform.Keycode.UNKNOWN);
+export const KEYCODE_BACKSPACE = @enumToInt(platform.Keycode.BACKSPACE);
+
 export const MOUSE_BUTTON_LEFT = @enumToInt(platform.MouseButton.Left);
 export const MOUSE_BUTTON_MIDDLE = @enumToInt(platform.MouseButton.Middle);
 export const MOUSE_BUTTON_RIGHT = @enumToInt(platform.MouseButton.Right);
@@ -76,7 +79,7 @@ export fn onMouseWheel(x: i32, y: i32) void {
 export fn onKeyDown(key: u16, scancode: u16) void {
     app.onEvent(&context, .{
         .KeyDown = .{
-            .key = @intToEnum(platform.Scancode, key),
+            .key = @intToEnum(platform.Keycode, key),
             .scancode = @intToEnum(platform.Scancode, scancode),
         },
     });
@@ -85,7 +88,7 @@ export fn onKeyDown(key: u16, scancode: u16) void {
 export fn onKeyUp(key: u16, scancode: u16) void {
     app.onEvent(&context, .{
         .KeyUp = .{
-            .key = @intToEnum(platform.Scancode, key),
+            .key = @intToEnum(platform.Keycode, key),
             .scancode = @intToEnum(platform.Scancode, scancode),
         },
     });

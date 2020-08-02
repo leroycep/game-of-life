@@ -133,8 +133,8 @@ fetch("game-of-life-web.wasm")
     });
 
     const keyMap = {
-        Unknown: ex.SCANCODE_UNKNOWN,
-        Backspace: ex.SCANCODE_BACKSPACE,
+        Unknown: ex.KEYCODE_UNKNOWN,
+        Backspace: ex.KEYCODE_BACKSPACE,
     };
     const codeMap = {
       Unknown: ex.SCANCODE_UNKNOWN,
