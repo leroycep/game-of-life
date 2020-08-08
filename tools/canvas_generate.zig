@@ -334,7 +334,7 @@ fn writeZigFile(filename: []const u8) !void {
                 }
             }
             try stream.print(");\n", .{});
-            try stream.print("}\n", .{});
+            try stream.print("}}\n", .{});
         }
     }
 }
@@ -347,7 +347,7 @@ fn writeJsFile(filename: []const u8) !void {
 
     try stream.print("{}\n", .{js_top});
 
-    try stream.print("    return {\n", .{});
+    try stream.print("    return {{\n", .{});
     for (funcs) |func| {
         const any_slice = for (func.args) |arg| {
             if (std.mem.eql(u8, arg.type, "STRING") or std.mem.eql(u8, arg.type, "SLICE(f32)")) {
@@ -368,7 +368,7 @@ fn writeJsFile(filename: []const u8) !void {
                 try stream.print("{}", .{arg.name});
             }
         }
-        try stream.print(") {\n", .{});
+        try stream.print(") {{\n", .{});
         for (func.args) |arg| {
             if (std.mem.eql(u8, arg.type, "STRING")) {
                 try stream.print("            const {} = readCharStr({}_ptr, {}_len);\n", .{ arg.name, arg.name, arg.name });
@@ -382,9 +382,9 @@ fn writeJsFile(filename: []const u8) !void {
             try stream.print("            {}\n", .{func.js[start .. start + rel_newline_pos]});
             start += rel_newline_pos + 1;
         }
-        try stream.print("        },\n", .{});
+        try stream.print("        }},\n", .{});
     }
-    try stream.print("    };\n", .{});
+    try stream.print("    }};\n", .{});
 
     try stream.print("{}\n", .{js_bottom});
 }
