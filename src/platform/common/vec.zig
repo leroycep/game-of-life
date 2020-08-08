@@ -10,6 +10,15 @@ pub fn Vec(comptime S: usize, comptime T: type) type {
                 pub fn init(xv: T, yv: T) Self {
                     return Self{ .v = .{ xv, yv } };
                 }
+
+                pub fn rot90(self: Self) Self {
+                    return Self{
+                        .v = .{
+                            -self.v[1],
+                            self.v[0],
+                        },
+                    };
+                }
             },
             3 => struct {
                 pub fn init(xv: T, yv: T, zv: T) Self {

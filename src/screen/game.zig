@@ -321,6 +321,9 @@ pub const Game = struct {
                     self.ticks_per_step -= 1;
                     self.ticks_per_step = std.math.max(self.ticks_per_step, 0);
                 },
+                .R => if (self.grid_clipboard) |*clipboard| {
+                    clipboard.rotate();
+                },
                 else => {},
             },
             .MouseButtonDown => |ev| switch (ev.button) {

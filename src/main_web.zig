@@ -13,6 +13,7 @@ export const SCANCODE_A = @enumToInt(platform.Scancode.A);
 export const SCANCODE_S = @enumToInt(platform.Scancode.S);
 export const SCANCODE_D = @enumToInt(platform.Scancode.D);
 export const SCANCODE_Z = @enumToInt(platform.Scancode.Z);
+export const SCANCODE_R = @enumToInt(platform.Scancode.R);
 export const SCANCODE_LEFT = @enumToInt(platform.Scancode.LEFT);
 export const SCANCODE_RIGHT = @enumToInt(platform.Scancode.RIGHT);
 export const SCANCODE_UP = @enumToInt(platform.Scancode.UP);

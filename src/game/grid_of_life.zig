@@ -155,6 +155,32 @@ pub const GridOfLife = struct {
             dest_pos.v[1] += 1;
         }
     }
+
+    pub fn rotate(self: *@This()) void {
+        const center = self.options.size.scalDiv(2).intCast(isize);
+        const new_size = vec2us(self.options.size.y(), self.options.size.x());
+        const new_center = vec2is(@intCast(isize, new_size.x()-1), 0).add(center.rot90());
+        var pos = vec2is(0, 0);
+        while (pos.y() < self.options.size.y()) : (pos.v[1] += 1) {
+            pos.v[0] = 0;
+            while (pos.x() < self.options.size.x()) : (pos.v[0] += 1) {
+                const rot_pos = pos.sub(center).rot90().add(new_center);
+                const rot_pos_u = rot_pos.intCast(usize);
+                const rot_idx = rot_pos_u.y() * new_size.x() + rot_pos_u.x();
+
+                if (rot_idx >= self.cells_next.len) {
+                    platform.warn("rot_idx out of range: {} -> {} {}", .{ pos, rot_pos, rot_idx });
+                    platform.warn("centers: {} -> {}", .{ center, new_center });
+                }
+
+                self.cells_next[rot_idx] = self.get(pos);
+            }
+        }
+        const tmp = self.cells;
+        self.cells = self.cells_next;
+        self.cells_next = tmp;
+        self.options.size = new_size;
+    }
 };
 
 test "GridOfLife square is stable" {
