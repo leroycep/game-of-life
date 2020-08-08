@@ -80,6 +80,12 @@ pub const GridOfLife = struct {
         return @intCast(usize, @mod(pos.y(), size_i.y()) * size_i.x() + @mod(pos.x(), size_i.x()));
     }
 
+    fn swap_cells_buffer(self: *@This()) void {
+        const tmp = self.cells;
+        self.cells = self.cells_next;
+        self.cells_next = tmp;
+    }
+
     pub fn step(self: *@This()) void {
         var y: isize = 0;
         while (y < self.options.size.y()) : (y += 1) {
@@ -110,9 +116,7 @@ pub const GridOfLife = struct {
                 self.cells_next[self.idx(pos).?] = next_value;
             }
         }
-        const tmp = self.cells;
-        self.cells = self.cells_next;
-        self.cells_next = tmp;
+        self.swap_cells_buffer();
         self.generation += 1;
     }
 
@@ -159,7 +163,7 @@ pub const GridOfLife = struct {
     pub fn rotate(self: *@This()) void {
         const center = self.options.size.scalDiv(2).intCast(isize);
         const new_size = vec2us(self.options.size.y(), self.options.size.x());
-        const new_center = vec2is(@intCast(isize, new_size.x()-1), 0).add(center.rot90());
+        const new_center = vec2is(@intCast(isize, new_size.x() - 1), 0).add(center.rot90());
         var pos = vec2is(0, 0);
         while (pos.y() < self.options.size.y()) : (pos.v[1] += 1) {
             pos.v[0] = 0;
@@ -176,9 +180,7 @@ pub const GridOfLife = struct {
                 self.cells_next[rot_idx] = self.get(pos);
             }
         }
-        const tmp = self.cells;
-        self.cells = self.cells_next;
-        self.cells_next = tmp;
+        self.swap_cells_buffer();
         self.options.size = new_size;
     }
 };
