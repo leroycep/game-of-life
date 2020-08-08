@@ -143,6 +143,7 @@ fetch("game-of-life-web.wasm")
       KeyS: ex.SCANCODE_S,
       KeyD: ex.SCANCODE_D,
       KeyZ: ex.SCANCODE_Z,
+      KeyR: ex.SCANCODE_R,
       ArrowLeft: ex.SCANCODE_LEFT,
       ArrowRight: ex.SCANCODE_RIGHT,
       ArrowUp: ex.SCANCODE_UP,
