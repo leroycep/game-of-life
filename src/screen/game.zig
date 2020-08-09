@@ -248,9 +248,10 @@ pub const Game = struct {
                     self.prev_cell = self.start_cell;
                     if (self.grid_clipboard) |clipboard| {
                         const clipboard_center = clipboard.options.size.scalDiv(2).intCast(i32);
-                        const dest = platform.Rect(i32).initPosAndSize(self.start_cell.sub(clipboard_center), clipboard.options.size.intCast(i32));
-                        const src = platform.Rect(i32).initPosAndSize(Vec(2, i32).init(0, 0), clipboard.options.size.intCast(i32));
-                        //self.grid.copy(dest, clipboard, src);
+                        const dest = self.start_cell.sub(clipboard_center);
+                        clipboard.paste(&self.grid, dest) catch |e| {
+                            platform.warn("Failed to paste clipboard to grid, {}", .{e});
+                        };
                     } else {
                         self.grid.set(self.start_cell, !self.grid.get(self.start_cell)) catch unreachable;
                     }
@@ -300,17 +301,10 @@ pub const Game = struct {
                         return;
                     }
 
-                    const dest_rect = platform.Rect(i32).initPosAndSize(Vec(2, i32).init(0, 0), src_rect.size());
-
-                    self.grid_clipboard = GridOfLife.init(self.alloc, .{
-                        .size = dest_rect.size().intCast(usize),
-                        .edge_behaviour = .Dead,
-                    }) catch {
-                        platform.warn("Could not allocate space for grid clipboard", .{});
+                    self.grid_clipboard = GridOfLife.copy(self.alloc, self.grid, src_rect) catch |e| {
+                        platform.warn("Could not allocate space for grid clipboard, {}", .{e});
                         return;
                     };
-
-                    //self.grid_clipboard.?.copy(dest_rect, self.grid, src_rect);
                 },
                 else => {},
             },
@@ -319,9 +313,10 @@ pub const Game = struct {
                     const current_cell = self.cursor_pos_to_cell(ev.pos.intToFloat(f32));
                     if (self.grid_clipboard) |clipboard| {
                         const clipboard_center = clipboard.options.size.scalDiv(2).intCast(i32);
-                        const dest = platform.Rect(i32).initPosAndSize(current_cell.sub(clipboard_center), clipboard.options.size.intCast(i32));
-                        const src = platform.Rect(i32).initPosAndSize(Vec(2, i32).init(0, 0), clipboard.options.size.intCast(i32));
-                        //self.grid.copy(dest, clipboard, src);
+                        const dest = current_cell.sub(clipboard_center);
+                        clipboard.paste(&self.grid, dest) catch |e| {
+                            platform.warn("Failed to paste clipboard to grid, {}", .{e});
+                        };
                     } else {
                         if (self.start_cell.eql(current_cell)) break :setting_cells;
                         self.fill_line_on_grid(self.prev_cell, current_cell) catch {};

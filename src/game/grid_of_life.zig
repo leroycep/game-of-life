@@ -1,9 +1,13 @@
 const std = @import("std");
 const platform = @import("../platform.zig");
+const Allocator = std.mem.Allocator;
 const Vec = platform.Vec;
+const Vec2i = platform.Vec2i;
 const vec2us = platform.vec2us;
 const vec2is = platform.vec2is;
+const vec2i = platform.vec2i;
 const Rect = platform.Rect;
+const World = @import("./world.zig").World;
 
 pub const patterns = @import("./patterns.zig");
 
@@ -120,43 +124,37 @@ pub const GridOfLife = struct {
         self.generation += 1;
     }
 
-    // Get the smallest rectangle that contains the all living cells
-    pub fn min_rect(self: @This(), rect: Rect(isize)) ?Rect(isize) {
-        var min = rect.max;
-        var max = rect.min;
+    pub fn copy(alloc: *Allocator, world: World, src_rect: Rect(i32)) !@This() {
+        var self = try init(alloc, .{
+            .size = src_rect.size().intCast(usize),
+            .edge_behaviour = .Dead,
+        });
 
-        var pos = rect.min;
-        while (pos.y() < rect.max.y()) : (pos.v[1] += 1) {
-            pos.v[0] = rect.min.x();
-            while (pos.x() < rect.max.x()) : (pos.v[0] += 1) {
-                if (self.get(pos)) {
-                    min = min.minComponents(pos);
-                    max = max.maxComponents(pos);
-                }
-            }
-        }
-
-        if (min.x() > max.x() or min.y() > max.y()) {
-            return null;
-        }
-
-        return Rect(isize).initMinAndMax(min, max.add(vec2is(1, 1)));
-    }
-
-    pub fn copy(dest: *@This(), dest_rect: Rect(isize), src: @This(), src_rect: Rect(isize)) void {
         var src_pos = src_rect.min;
-        var dest_pos = dest_rect.min;
-        while (src_pos.y() < src_rect.max.y() and dest_pos.y() < dest_rect.max.y()) {
+        var dest_pos = vec2is(0, 0);
+        while (src_pos.y() < src_rect.max.y()) {
             src_pos.v[0] = src_rect.min.x();
-            dest_pos.v[0] = dest_rect.min.x();
-            while (src_pos.x() < src_rect.max.x() and dest_pos.x() < dest_rect.max.x()) {
-                dest.set(dest_pos, src.get(src_pos));
+            dest_pos.v[0] = 0;
+            while (src_pos.x() < src_rect.max.x()) {
+                self.set(dest_pos, world.get(src_pos));
 
                 src_pos.v[0] += 1;
                 dest_pos.v[0] += 1;
             }
             src_pos.v[1] += 1;
             dest_pos.v[1] += 1;
+        }
+
+        return self;
+    }
+
+    pub fn paste(self: @This(), world: *World, world_offset: Vec2i) !void {
+        var pos = vec2i(0, 0);
+        while (pos.y() < @intCast(i32, self.options.size.y())) : (pos.v[1] += 1) {
+            pos.v[0] = 0;
+            while (pos.x() < @intCast(i32, self.options.size.x())) : (pos.v[0] += 1) {
+                try world.set(world_offset.add(pos), self.get(pos.intCast(isize)));
+            }
         }
     }
 
