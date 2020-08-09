@@ -89,6 +89,9 @@ pub const World = struct {
     }
 
     pub fn get_chunk(self: *const @This(), chunk_pos: Vec(2, i32)) ?*const Chunk {
+        const tracy = trace(@src());
+        defer tracy.end();
+
         const chunk_identifer = pack_chunk_identifier(chunk_pos);
         return if (self.chunks.getEntry(chunk_identifer)) |entry| entry.value else null;
     }
@@ -259,6 +262,15 @@ pub const Chunk = struct {
         var is_an_alive_cell = false;
         self.active_edges = 0;
 
+        const chunk_n = world.get_chunk(chunk_pos.add(vec2i(0, -1)));
+        const chunk_ne = world.get_chunk(chunk_pos.add(vec2i(1, -1)));
+        const chunk_e = world.get_chunk(chunk_pos.add(vec2i(1, 0)));
+        const chunk_se = world.get_chunk(chunk_pos.add(vec2i(1, 1)));
+        const chunk_s = world.get_chunk(chunk_pos.add(vec2i(0, 1)));
+        const chunk_sw = world.get_chunk(chunk_pos.add(vec2i(-1, 1)));
+        const chunk_w = world.get_chunk(chunk_pos.add(vec2i(-1, 0)));
+        const chunk_nw = world.get_chunk(chunk_pos.add(vec2i(-1, -1)));
+
         var pos = vec2i(0, 0);
         while (pos.y() < CHUNK_SIZE) : (pos.v[1] += 1) {
             pos.v[0] = 0;
@@ -271,7 +283,44 @@ pub const Chunk = struct {
                     while (offset.v[0] <= 1) : (offset.v[0] += 1) {
                         if (offset.v[0] == 0 and offset.v[1] == 0) continue;
                         const neighbor_pos = pos.add(offset);
-                        if (self.get_self_or_world(world, chunk_pos, neighbor_pos)) {
+
+                        if (neighbor_pos.y() < 0) {
+                            if (neighbor_pos.x() < 0) {
+                                if (chunk_nw) |c| {
+                                    if (c.get(neighbor_pos.add(vec2i(CHUNK_SIZE, CHUNK_SIZE))).?) neighbors += 1;
+                                }
+                            } else if (neighbor_pos.x() >= CHUNK_SIZE) {
+                                if (chunk_ne) |c| {
+                                    if (c.get(neighbor_pos.add(vec2i(-CHUNK_SIZE, CHUNK_SIZE))).?) neighbors += 1;
+                                }
+                            } else {
+                                if (chunk_n) |c| {
+                                    if (c.get(neighbor_pos.add(vec2i(0, CHUNK_SIZE))).?) neighbors += 1;
+                                }
+                            }
+                        } else if (neighbor_pos.y() >= CHUNK_SIZE) {
+                            if (neighbor_pos.x() < 0) {
+                                if (chunk_sw) |c| {
+                                    if (c.get(neighbor_pos.add(vec2i(CHUNK_SIZE, -CHUNK_SIZE))).?) neighbors += 1;
+                                }
+                            } else if (neighbor_pos.x() >= CHUNK_SIZE) {
+                                if (chunk_se) |c| {
+                                    if (c.get(neighbor_pos.add(vec2i(-CHUNK_SIZE, -CHUNK_SIZE))).?) neighbors += 1;
+                                }
+                            } else {
+                                if (chunk_s) |c| {
+                                    if (c.get(neighbor_pos.add(vec2i(0, -CHUNK_SIZE))).?) neighbors += 1;
+                                }
+                            }
+                        } else if (neighbor_pos.x() < 0) {
+                            if (chunk_w) |c| {
+                                if (c.get(neighbor_pos.add(vec2i(CHUNK_SIZE, 0))).?) neighbors += 1;
+                            }
+                        } else if (neighbor_pos.x() >= CHUNK_SIZE) {
+                            if (chunk_e) |c| {
+                                if (c.get(neighbor_pos.add(vec2i(-CHUNK_SIZE, 0))).?) neighbors += 1;
+                            }
+                        } else if (self.get(neighbor_pos).?) {
                             neighbors += 1;
                         }
                     }
