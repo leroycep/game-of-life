@@ -87,6 +87,7 @@ pub const World = struct {
         for (self.chunks.items()) |*chunk_entry| {
             chunk_entry.value.swap();
         }
+        self.generation += 1;
         self.chunks_to_activate.clearRetainingCapacity();
     }
 
