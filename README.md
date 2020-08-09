@@ -36,7 +36,7 @@ given I have the time.
 
 [lambda school]: https://lambdaschool.com/
 
-- [ ] Infinite Grid
+- [x] Infinite Grid
   - I had a plan to split the grid into a bunch of chunks, and then only keep
     active chunks loaded.
   - This would've been so cool! But I decided to focus on making the app more

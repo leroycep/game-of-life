@@ -44,10 +44,17 @@ export const TextMetrics_OFFSET_actualBoundingBoxRight: usize = @byteOffsetOf(Te
 
 var context: platform.Context = undefined;
 
+const GPAllocator = std.heap.GeneralPurposeAllocator(.{});
+var general_purpose_allocator: GPAllocator = undefined;
+
+pub fn log(msg_level: std.log.Level, scope: anytype, format: []const u8, args: anytype) void {
+    unreachable;
+}
+
 export fn onInit() void {
-    const alloc = zee_alloc.ZeeAllocDefaults.wasm_allocator;
+    general_purpose_allocator = .{};
     context = platform.Context{
-        .alloc = alloc,
+        .alloc = &general_purpose_allocator.allocator,
         .renderer = platform.Renderer.init(),
     };
     app.onInit(&context);
