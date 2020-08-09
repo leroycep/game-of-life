@@ -45,6 +45,7 @@ pub fn build(b: *Builder) void {
         .cpu_arch = .wasm32,
         .os_tag = .freestanding,
     });
+    wasm.addBuildOption(bool, "enable_tracy", false);
 
     const htmlInstall = b.addInstallFile("./index.html", SITE_DIR ++ sep_str ++ "index.html");
     const cssInstall = b.addInstallFile("./index.css", SITE_DIR ++ sep_str ++ "index.css");
