@@ -228,6 +228,18 @@ pub const Chunk = struct {
         return self.cells[self.current_idx()][idx_in_chunk];
     }
 
+    pub fn get_self_or_world(self: @This(), world: *const World, chunk_pos: Vec(2, i32), pos_relative_self: Vec(2, i32)) bool {
+        if (pos_relative_self.x() < 0 or pos_relative_self.x() >= CHUNK_SIZE or pos_relative_self.y() < 0 or pos_relative_self.y() >= CHUNK_SIZE) {
+            // We need to go to the world to retrieve the cell
+            const world_pos = pos_relative_self.add(chunk_pos.scalMul(CHUNK_SIZE));
+            return world.get(world_pos);
+        } else {
+            // We can safely use local data
+            const idx_in_chunk = chunk_idx(pos_relative_self) orelse unreachable;
+            return self.cells[self.current_idx()][idx_in_chunk];
+        }
+    }
+
     pub fn set(self: *@This(), pos: Vec(2, i32), value: bool) void {
         const idx_in_chunk = chunk_idx(pos) orelse return;
         self.cells[self.current_idx()][idx_in_chunk] = value;
@@ -247,7 +259,6 @@ pub const Chunk = struct {
         var is_an_alive_cell = false;
         self.active_edges = 0;
 
-        const chunk_offset = chunk_pos.scalMul(CHUNK_SIZE);
         var pos = vec2i(0, 0);
         while (pos.y() < CHUNK_SIZE) : (pos.v[1] += 1) {
             pos.v[0] = 0;
@@ -259,8 +270,8 @@ pub const Chunk = struct {
                     offset.v[0] = -1;
                     while (offset.v[0] <= 1) : (offset.v[0] += 1) {
                         if (offset.v[0] == 0 and offset.v[1] == 0) continue;
-                        const neighbor_pos = pos.add(offset).add(chunk_offset);
-                        if (world.get(neighbor_pos)) {
+                        const neighbor_pos = pos.add(offset);
+                        if (self.get_self_or_world(world, chunk_pos, neighbor_pos)) {
                             neighbors += 1;
                         }
                     }
