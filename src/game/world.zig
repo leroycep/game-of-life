@@ -2,6 +2,7 @@ const std = @import("std");
 const platform = @import("../platform.zig");
 const Allocator = std.mem.Allocator;
 const AutoHashMap = std.AutoHashMap;
+const ArrayList = std.ArrayList;
 const Vec = platform.Vec;
 const Vec2f = platform.Vec2f;
 const Vec2i = platform.Vec2i;
@@ -16,6 +17,8 @@ pub const World = struct {
     alloc: *Allocator,
     chunks: AutoHashMap(u64, *Chunk),
     chunks_to_activate: AutoHashMap(u64, void),
+    dead_chunks_idx: ArrayList(u64),
+    dead_chunks: ArrayList(*Chunk),
     generation: usize,
 
     pub fn init(alloc: *std.mem.Allocator) @This() {
@@ -23,12 +26,19 @@ pub const World = struct {
             .alloc = alloc,
             .chunks = AutoHashMap(u64, *Chunk).init(alloc),
             .chunks_to_activate = AutoHashMap(u64, void).init(alloc),
+            .dead_chunks_idx = ArrayList(u64).init(alloc),
+            .dead_chunks = ArrayList(*Chunk).init(alloc),
             .generation = 0,
         };
     }
 
     pub fn deinit(self: *@This()) void {
+        for (self.chunks.items()) |entry| {
+            self.alloc.destroy(entry.value);
+        }
         self.chunks.deinit();
+        self.chunks_to_activate.deinit();
+        self.dead_chunks.deinit();
     }
 
     // Get the cell at the position specified, respecting edge behaviour
@@ -67,9 +77,14 @@ pub const World = struct {
     }
 
     pub fn step(self: *@This()) !void {
+        try self.dead_chunks_idx.resize(0);
         for (self.chunks.items()) |*chunk_entry| {
             const pos = unpack_chunk_identifier(chunk_entry.key);
             chunk_entry.value.step(self, pos);
+
+            if (chunk_entry.value.dead) {
+                try self.dead_chunks_idx.append(chunk_entry.key);
+            }
 
             if (chunk_entry.value.active_edges & Chunk.EDGE_N != 0) try self.chunks_to_activate.put(pack_chunk_identifier(pos.add(vec2i(0, -1))), .{});
             if (chunk_entry.value.active_edges & Chunk.EDGE_E != 0) try self.chunks_to_activate.put(pack_chunk_identifier(pos.add(vec2i(1, 0))), .{});
@@ -80,10 +95,17 @@ pub const World = struct {
             if (chunk_entry.value.active_edges & Chunk.EDGE_SE != 0) try self.chunks_to_activate.put(pack_chunk_identifier(pos.add(vec2i(1, 1))), .{});
             if (chunk_entry.value.active_edges & Chunk.EDGE_SW != 0) try self.chunks_to_activate.put(pack_chunk_identifier(pos.add(vec2i(-1, 1))), .{});
         }
+        for (self.dead_chunks_idx.items) |possibly_dead_chunk| {
+            if (!self.chunks_to_activate.contains(possibly_dead_chunk)) {
+                const entry = self.chunks.remove(possibly_dead_chunk).?;
+                try self.dead_chunks.append(entry.value);
+            }
+        }
         for (self.chunks_to_activate.items()) |to_activate| {
             var gop = try self.chunks.getOrPut(to_activate.key);
             if (!gop.found_existing) {
-                gop.entry.value = try self.alloc.create(Chunk);
+                gop.entry.value = self.dead_chunks.popOrNull() orelse try self.alloc.create(Chunk);
+
                 gop.entry.value.init();
                 gop.entry.value.step(self, unpack_chunk_identifier(gop.entry.key));
             }
@@ -143,6 +165,7 @@ pub const World = struct {
 
 pub const Chunk = struct {
     current: bool,
+    dead: bool,
     active_edges: u8,
     cells: [2][CHUNK_SIZE * CHUNK_SIZE]bool,
 
@@ -158,6 +181,7 @@ pub const Chunk = struct {
     pub fn init(self: *@This()) void {
         self.* = @This(){
             .current = false,
+            .dead = true,
             .active_edges = 0,
             .cells = undefined,
         };
@@ -191,6 +215,7 @@ pub const Chunk = struct {
 
     // Updates the cells_next states
     pub fn step(self: *@This(), world: *const World, chunk_pos: Vec(2, i32)) void {
+        var is_an_alive_cell = false;
         self.active_edges = 0;
 
         const chunk_offset = chunk_pos.scalMul(CHUNK_SIZE);
@@ -223,6 +248,8 @@ pub const Chunk = struct {
                 };
                 self.cells[self.next_idx()][chunk_idx(pos).?] = next_value;
 
+                is_an_alive_cell = is_an_alive_cell or next_value;
+
                 if (!own_value) continue;
                 if (pos.x() == 0) self.active_edges |= EDGE_W;
                 if (pos.x() == CHUNK_SIZE - 1) self.active_edges |= EDGE_E;
@@ -236,6 +263,8 @@ pub const Chunk = struct {
                 if (pos.y() == CHUNK_SIZE - 1 and pos.x() == CHUNK_SIZE - 1) self.active_edges |= EDGE_SE;
             }
         }
+
+        self.dead = !is_an_alive_cell;
     }
 
     pub fn swap(self: *@This()) void {
