@@ -21,8 +21,8 @@ pub const World = struct {
     dead_chunks: ArrayList(*Chunk),
     generation: usize,
 
-    pub fn init(alloc: *std.mem.Allocator) @This() {
-        return @This(){
+    pub fn init(alloc: *std.mem.Allocator) !@This() {
+        var self = @This(){
             .alloc = alloc,
             .chunks = AutoHashMap(u64, *Chunk).init(alloc),
             .chunks_to_activate = AutoHashMap(u64, void).init(alloc),
@@ -30,6 +30,15 @@ pub const World = struct {
             .dead_chunks = ArrayList(*Chunk).init(alloc),
             .generation = 0,
         };
+        errdefer {
+            self.deinit();
+        }
+
+        const origin_chunk = try self.alloc.create(Chunk);
+        origin_chunk.init();
+        try self.chunks.put(0, origin_chunk);
+
+        return self;
     }
 
     pub fn deinit(self: *@This()) void {
@@ -82,7 +91,8 @@ pub const World = struct {
             const pos = unpack_chunk_identifier(chunk_entry.key);
             chunk_entry.value.step(self, pos);
 
-            if (chunk_entry.value.dead) {
+            // Never get rid of chunk 0,0
+            if (chunk_entry.value.dead and chunk_entry.key != 0) {
                 try self.dead_chunks_idx.append(chunk_entry.key);
             }
 

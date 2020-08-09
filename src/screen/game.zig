@@ -56,9 +56,8 @@ pub const Game = struct {
 
     pub fn init(alloc: *std.mem.Allocator) !*@This() {
         const self = try alloc.create(@This());
-        var grid = World.init(alloc);
+        var grid = try World.init(alloc);
         errdefer grid.deinit();
-        try grid.set(vec2i(0, 0), true);
         const grid_clipboard = try GridOfLife.init(alloc, .{
             .size = vec2us(0, 0),
             .edge_behaviour = .Dead,
