@@ -3,9 +3,11 @@ const platform = @import("../platform.zig");
 const Allocator = std.mem.Allocator;
 const AutoHashMap = std.AutoHashMap;
 const Vec = platform.Vec;
+const Vec2f = platform.Vec2f;
 const Vec2i = platform.Vec2i;
 const vec2i = platform.vec2i;
 const Rect = platform.Rect;
+const Renderer = platform.Renderer;
 
 const CHUNK_SIZE_LOG2 = 4;
 const CHUNK_SIZE = 1 << CHUNK_SIZE_LOG2;
@@ -105,6 +107,37 @@ pub const World = struct {
             @bitCast(i32, @intCast(u32, identifier >> 32 & 0xFFFFFFFF)),
             @bitCast(i32, @intCast(u32, identifier & 0xFFFFFFFF)),
         );
+    }
+
+    pub fn render(self: @This(), renderer: *Renderer, cell_rect: Rect(i32), grid_offset: Vec2f, scale: f32) void {
+        renderer.set_stroke_style(.{ .Color = .{ .r = 0xCC, .g = 0xCC, .b = 0xCC, .a = 255 } });
+        if (scale > 8) {
+            // Render grid lines
+            renderer.set_line_cap(.square);
+            renderer.set_line_width(1.5);
+
+            const quarter = scale / 4;
+            renderer.set_line_dash(&[_]f32{ quarter, 2 * quarter, quarter, 0 });
+        } else {
+            renderer.set_line_dash(&[_]f32{});
+        }
+
+        var top_left_chunk = cell_rect.min;
+        top_left_chunk.v[0] >>= CHUNK_SIZE_LOG2;
+        top_left_chunk.v[1] >>= CHUNK_SIZE_LOG2;
+        var bottom_right_chunk = cell_rect.max;
+        bottom_right_chunk.v[0] >>= CHUNK_SIZE_LOG2;
+        bottom_right_chunk.v[1] >>= CHUNK_SIZE_LOG2;
+
+        var chunk_pos = top_left_chunk;
+        while (chunk_pos.y() <= bottom_right_chunk.y()) : (chunk_pos.v[1] += 1) {
+            chunk_pos.v[0] = top_left_chunk.x();
+            while (chunk_pos.x() <= bottom_right_chunk.x()) : (chunk_pos.v[0] += 1) {
+                if (self.get_chunk(chunk_pos)) |chunk| {
+                    chunk.render(renderer, chunk_pos, grid_offset, scale);
+                }
+            }
+        }
     }
 };
 
@@ -207,6 +240,68 @@ pub const Chunk = struct {
 
     pub fn swap(self: *@This()) void {
         self.current = !self.current;
+    }
+
+    pub fn render(self: @This(), renderer: *Renderer, chunk_pos: Vec2i, grid_offset: Vec2f, scale: f32) void {
+        const chunk_offset = chunk_pos.scalMul(CHUNK_SIZE);
+        if (scale > 8) {
+            // Render grid lines
+            renderer.set_line_cap(.square);
+            renderer.set_line_width(1.5);
+
+            const quarter = scale / 4;
+            renderer.set_line_dash(&[_]f32{ quarter, 2 * quarter, quarter, 0 });
+
+            renderer.begin_path();
+            var y: i32 = 0;
+            while (y <= CHUNK_SIZE) : (y += 1) {
+                renderer.move_to(
+                    grid_offset.x() + @intToFloat(f32, chunk_offset.x()) * scale,
+                    grid_offset.y() + @intToFloat(f32, chunk_offset.y() + y) * scale,
+                );
+                renderer.line_to(
+                    grid_offset.x() + @intToFloat(f32, chunk_offset.x() + CHUNK_SIZE) * scale,
+                    grid_offset.y() + @intToFloat(f32, chunk_offset.y() + y) * scale,
+                );
+            }
+            var x: i32 = 0;
+            while (x <= CHUNK_SIZE) : (x += 1) {
+                renderer.move_to(
+                    grid_offset.x() + @intToFloat(f32, chunk_offset.x() + x) * scale,
+                    grid_offset.y() + @intToFloat(f32, chunk_offset.y()) * scale,
+                );
+                renderer.line_to(
+                    grid_offset.x() + @intToFloat(f32, chunk_offset.x() + x) * scale,
+                    grid_offset.y() + @intToFloat(f32, chunk_offset.y() + CHUNK_SIZE) * scale,
+                );
+            }
+            renderer.stroke();
+        } else {
+            // Draw rect around chunk
+            renderer.stroke_rect(
+                grid_offset.x() + @intToFloat(f32, chunk_offset.x()) * scale,
+                grid_offset.y() + @intToFloat(f32, chunk_offset.y()) * scale,
+                CHUNK_SIZE * scale,
+                CHUNK_SIZE * scale,
+            );
+        }
+
+        renderer.set_fill_style(.{ .Color = .{ .r = 100, .g = 100, .b = 100, .a = 255 } });
+
+        var pos = vec2i(0, 0);
+        while (pos.y() < CHUNK_SIZE) : (pos.v[1] += 1) {
+            pos.v[0] = 0;
+            while (pos.x() < CHUNK_SIZE) : (pos.v[0] += 1) {
+                if (self.get(pos) orelse false) {
+                    renderer.fill_rect(
+                        grid_offset.x() + @intToFloat(f32, chunk_offset.x() + pos.x()) * scale,
+                        grid_offset.y() + @intToFloat(f32, chunk_offset.y() + pos.y()) * scale,
+                        scale,
+                        scale,
+                    );
+                }
+            }
+        }
     }
 };
 
