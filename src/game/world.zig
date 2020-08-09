@@ -47,6 +47,10 @@ pub const World = struct {
         }
         self.chunks.deinit();
         self.chunks_to_activate.deinit();
+        self.dead_chunks_idx.deinit();
+        for (self.dead_chunks.items) |chunk| {
+            self.alloc.destroy(chunk);
+        }
         self.dead_chunks.deinit();
     }
 
