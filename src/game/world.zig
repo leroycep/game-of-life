@@ -12,14 +12,14 @@ const CHUNK_SIZE = 1 << CHUNK_SIZE_LOG2;
 
 pub const World = struct {
     alloc: *Allocator,
-    chunks: AutoHashMap(u64, Chunk),
+    chunks: AutoHashMap(u64, *Chunk),
     chunks_to_activate: AutoHashMap(u64, void),
     generation: usize,
 
     pub fn init(alloc: *std.mem.Allocator) @This() {
         return @This(){
             .alloc = alloc,
-            .chunks = AutoHashMap(u64, Chunk).init(alloc),
+            .chunks = AutoHashMap(u64, *Chunk).init(alloc),
             .chunks_to_activate = AutoHashMap(u64, void).init(alloc),
             .generation = 0,
         };
@@ -48,14 +48,15 @@ pub const World = struct {
         const pos_in_chunk = pos.sub(top_left_of_chunk);
         var gop = try self.chunks.getOrPut(pack_chunk_identifier(pos_of_chunk));
         if (!gop.found_existing) {
-            gop.entry.value = Chunk.init();
+            gop.entry.value = try self.alloc.create(Chunk);
+            gop.entry.value.init();
         }
         gop.entry.value.set(pos_in_chunk, value);
     }
 
     pub fn get_chunk(self: *const @This(), chunk_pos: Vec(2, i32)) ?*const Chunk {
         const chunk_identifer = pack_chunk_identifier(chunk_pos);
-        return if (self.chunks.getEntry(chunk_identifer)) |entry| &entry.value else null;
+        return if (self.chunks.getEntry(chunk_identifer)) |entry| entry.value else null;
     }
 
     pub fn get_chunk_mut(self: *@This(), chunk_pos: Vec(2, i32)) ?*Chunk {
@@ -80,7 +81,8 @@ pub const World = struct {
         for (self.chunks_to_activate.items()) |to_activate| {
             var gop = try self.chunks.getOrPut(to_activate.key);
             if (!gop.found_existing) {
-                gop.entry.value = Chunk.init();
+                gop.entry.value = try self.alloc.create(Chunk);
+                gop.entry.value.init();
                 gop.entry.value.step(self, unpack_chunk_identifier(gop.entry.key));
             }
         }
@@ -120,15 +122,14 @@ pub const Chunk = struct {
     const EDGE_SE = 0x40;
     const EDGE_SW = 0x80;
 
-    pub fn init() @This() {
-        var self = @This(){
+    pub fn init(self: *@This()) void {
+        self.* = @This(){
             .current = false,
             .active_edges = 0,
             .cells = undefined,
         };
         std.mem.set(bool, &self.cells[0], false);
         std.mem.set(bool, &self.cells[1], false);
-        return self;
     }
 
     fn current_idx(self: @This()) usize {
