@@ -1,4 +1,5 @@
 const std = @import("std");
+const fs = std.fs;
 const Builder = std.build.Builder;
 const sep_str = std.fs.path.sep_str;
 const Cpu = std.Target.Cpu;
@@ -10,6 +11,15 @@ pub fn build(b: *Builder) void {
     const mode = b.standardReleaseOptions();
 
     const tests = b.addTest("src/app.zig");
+    const tracy = b.option([]const u8, "tracy", "Enable Tracy integration. Supply path to Tracy Source");
+    tests.addBuildOption(bool, "enable_tracy", tracy != null);
+    if (tracy) |tracy_path| {
+        const client_cpp = fs.path.join(b.allocator, &[_][]const u8{ tracy_path, "TracyClient.cpp" }) catch unreachable;
+        tests.addIncludeDir(tracy_path);
+        tests.addCSourceFile(client_cpp, &[_][]const u8{ "-DTRACY_ENABLE=1", "-fno-sanitize=undefined" });
+        tests.linkSystemLibraryName("c++");
+        tests.linkLibC();
+    }
 
     const native = b.addExecutable("game-of-life", "src/main_native.zig");
     native.linkSystemLibrary("SDL2");

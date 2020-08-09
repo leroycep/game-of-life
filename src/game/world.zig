@@ -9,6 +9,7 @@ const Vec2i = platform.Vec2i;
 const vec2i = platform.vec2i;
 const Rect = platform.Rect;
 const Renderer = platform.Renderer;
+const trace = @import("../tracy.zig").trace;
 
 const CHUNK_SIZE_LOG2 = 4;
 const CHUNK_SIZE = 1 << CHUNK_SIZE_LOG2;
@@ -56,6 +57,9 @@ pub const World = struct {
 
     // Get the cell at the position specified, respecting edge behaviour
     pub fn get(self: @This(), pos: Vec(2, i32)) bool {
+        const tracy = trace(@src());
+        defer tracy.end();
+
         const pos_of_chunk = vec2i(pos.x() >> CHUNK_SIZE_LOG2, pos.y() >> CHUNK_SIZE_LOG2);
         if (self.get_chunk(pos_of_chunk)) |chunk| {
             const top_left_of_chunk = vec2i(pos_of_chunk.x() << CHUNK_SIZE_LOG2, pos_of_chunk.y() << CHUNK_SIZE_LOG2);
@@ -95,6 +99,9 @@ pub const World = struct {
     }
 
     pub fn step(self: *@This()) !void {
+        const tracy = trace(@src());
+        defer tracy.end();
+
         try self.dead_chunks_idx.resize(0);
         for (self.chunks.items()) |*chunk_entry| {
             const pos = unpack_chunk_identifier(chunk_entry.key);
@@ -234,6 +241,9 @@ pub const Chunk = struct {
 
     // Updates the cells_next states
     pub fn step(self: *@This(), world: *const World, chunk_pos: Vec(2, i32)) void {
+        const tracy = trace(@src());
+        defer tracy.end();
+
         var is_an_alive_cell = false;
         self.active_edges = 0;
 
@@ -354,6 +364,9 @@ pub const Chunk = struct {
 };
 
 test "World square is stable" {
+    const tracy = trace(@src());
+    defer tracy.end();
+
     var world = try World.init(std.testing.allocator);
     defer world.deinit();
 
@@ -389,6 +402,9 @@ test "World square is stable" {
 }
 
 test "World 500 generations of R-pentomino" {
+    const tracy = trace(@src());
+    defer tracy.end();
+
     var world = try World.init(std.testing.allocator);
     defer world.deinit();
 
