@@ -349,36 +349,53 @@ pub const Chunk = struct {
     }
 };
 
-test "GridOfLife square is stable" {
-    var grid = try GridOfLife.init(std.testing.allocator, .{
-        .size = vec2us(4, 4),
-    });
-    defer grid.deinit(std.testing.allocator);
+test "World square is stable" {
+    var world = try World.init(std.testing.allocator);
+    defer world.deinit();
 
-    grid.set(vec2is(1, 1), true);
-    grid.set(vec2is(2, 1), true);
-    grid.set(vec2is(1, 2), true);
-    grid.set(vec2is(2, 2), true);
+    try world.set(vec2i(1, 1), true);
+    try world.set(vec2i(2, 1), true);
+    try world.set(vec2i(1, 2), true);
+    try world.set(vec2i(2, 2), true);
 
-    grid.step();
+    var i: usize = 0;
+    while (i < 3) : (i += 1) {
+        try world.step();
 
-    std.testing.expect(grid.get(vec2is(1, 1)));
-    std.testing.expect(grid.get(vec2is(2, 1)));
-    std.testing.expect(grid.get(vec2is(1, 2)));
-    std.testing.expect(grid.get(vec2is(2, 2)));
+        std.testing.expect(world.get(vec2i(1, 1)));
+        std.testing.expect(world.get(vec2i(2, 1)));
+        std.testing.expect(world.get(vec2i(1, 2)));
+        std.testing.expect(world.get(vec2i(2, 2)));
 
-    std.testing.expect(!grid.get(vec2is(0, 0)));
-    std.testing.expect(!grid.get(vec2is(1, 0)));
-    std.testing.expect(!grid.get(vec2is(2, 0)));
-    std.testing.expect(!grid.get(vec2is(3, 0)));
+        std.testing.expect(!world.get(vec2i(0, 0)));
+        std.testing.expect(!world.get(vec2i(1, 0)));
+        std.testing.expect(!world.get(vec2i(2, 0)));
+        std.testing.expect(!world.get(vec2i(3, 0)));
 
-    std.testing.expect(!grid.get(vec2is(0, 1)));
-    std.testing.expect(!grid.get(vec2is(0, 2)));
-    std.testing.expect(!grid.get(vec2is(3, 1)));
-    std.testing.expect(!grid.get(vec2is(3, 2)));
+        std.testing.expect(!world.get(vec2i(0, 1)));
+        std.testing.expect(!world.get(vec2i(0, 2)));
+        std.testing.expect(!world.get(vec2i(3, 1)));
+        std.testing.expect(!world.get(vec2i(3, 2)));
 
-    std.testing.expect(!grid.get(vec2is(0, 3)));
-    std.testing.expect(!grid.get(vec2is(1, 3)));
-    std.testing.expect(!grid.get(vec2is(2, 3)));
-    std.testing.expect(!grid.get(vec2is(3, 3)));
+        std.testing.expect(!world.get(vec2i(0, 3)));
+        std.testing.expect(!world.get(vec2i(1, 3)));
+        std.testing.expect(!world.get(vec2i(2, 3)));
+        std.testing.expect(!world.get(vec2i(3, 3)));
+    }
+}
+
+test "World 500 generations of R-pentomino" {
+    var world = try World.init(std.testing.allocator);
+    defer world.deinit();
+
+    try world.set(vec2i(0, -1), true);
+    try world.set(vec2i(1, -1), true);
+    try world.set(vec2i(-1, 0), true);
+    try world.set(vec2i(0, 0), true);
+    try world.set(vec2i(0, 1), true);
+
+    var i: usize = 0;
+    while (i < 500) : (i += 1) {
+        try world.step();
+    }
 }
