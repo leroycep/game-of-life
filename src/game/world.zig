@@ -67,7 +67,12 @@ pub const World = struct {
         const pos_of_chunk = vec2i(pos.x() >> CHUNK_SIZE_LOG2, pos.y() >> CHUNK_SIZE_LOG2);
         const top_left_of_chunk = vec2i(pos_of_chunk.x() << CHUNK_SIZE_LOG2, pos_of_chunk.y() << CHUNK_SIZE_LOG2);
         const pos_in_chunk = pos.sub(top_left_of_chunk);
-        var gop = try self.chunks.getOrPut(pack_chunk_identifier(pos_of_chunk));
+        const chunk_identifer = pack_chunk_identifier(pos_of_chunk);
+        if (!self.chunks.contains(chunk_identifer) and !value) {
+            // Inactive chunks are set to off by default, so we don't need to allocate a new chunk
+            return;
+        }
+        var gop = try self.chunks.getOrPut(chunk_identifer);
         if (!gop.found_existing) {
             gop.entry.value = try self.alloc.create(Chunk);
             gop.entry.value.init();
