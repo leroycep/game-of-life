@@ -8,10 +8,11 @@ const Vec2f = platform.Vec2f;
 const vec2f = platform.vec2f;
 const Vec2i = platform.Vec2i;
 const vec2us = platform.vec2us;
-const vec2is = platform.vec2is;
+const vec2i = platform.vec2i;
 const Context = platform.Context;
 const Renderer = platform.Renderer;
 const game = @import("../game.zig");
+const World = game.World;
 const GridOfLife = game.GridOfLife;
 const constants = @import("../constants.zig");
 
@@ -31,11 +32,11 @@ pub const Game = struct {
     quit_pressed: bool = false,
     paused: bool,
     step_once: bool,
-    start_cell: Vec(2, isize),
-    prev_cell: Vec(2, isize),
+    start_cell: Vec2i,
+    prev_cell: Vec2i,
 
     is_selecting: bool,
-    select_start_cell: Vec(2, isize),
+    select_start_cell: Vec2i,
     grid_clipboard: ?GridOfLife,
 
     start_pan: ?Vec2i = null,
@@ -48,21 +49,16 @@ pub const Game = struct {
     gui: gui.Gui,
     paused_text: *gui.Label,
     generation_text: *gui.Label,
-    x_size_input: *gui.TextInput,
-    y_size_input: *gui.TextInput,
-    wrapping_checkbox: *gui.Checkbox,
 
     ticks_per_step: f32 = 10,
     ticks_since_last_step: f32 = 0,
-    grid: GridOfLife,
+    grid: World,
 
     pub fn init(alloc: *std.mem.Allocator) !*@This() {
         const self = try alloc.create(@This());
-        const grid = try GridOfLife.init(alloc, .{
-            .size = vec2us(DEFAULT_GRID_WIDTH, DEFAULT_GRID_HEIGHT),
-            .edge_behaviour = .Dead,
-        });
-        errdefer grid.deinit(alloc);
+        var grid = World.init(alloc);
+        errdefer grid.deinit();
+        try grid.set(vec2i(0, 0), true);
         const grid_clipboard = try GridOfLife.init(alloc, .{
             .size = vec2us(0, 0),
             .edge_behaviour = .Dead,
@@ -79,17 +75,14 @@ pub const Game = struct {
             },
             .paused = true,
             .step_once = false,
-            .start_cell = vec2is(-1, -1),
-            .prev_cell = vec2is(-1, -1),
+            .start_cell = vec2i(-1, -1),
+            .prev_cell = vec2i(-1, -1),
             .is_selecting = false,
-            .select_start_cell = vec2is(-1, -1),
+            .select_start_cell = vec2i(-1, -1),
             .grid_clipboard = null,
             .grid = grid,
             .paused_text = undefined,
             .generation_text = undefined,
-            .x_size_input = undefined,
-            .y_size_input = undefined,
-            .wrapping_checkbox = undefined,
             .gui = gui.Gui.init(alloc),
         };
         return self;
@@ -117,39 +110,10 @@ pub const Game = struct {
         press_right_text.text_align = .Right;
         press_right_text.text_baseline = .Middle;
 
-        // Set up size text inputs
-        self.x_size_input = gui.TextInput.init(&self.gui) catch unreachable;
-        self.x_size_input.text.outStream().print("{}", .{self.grid.options.size.x()}) catch unreachable;
-        self.y_size_input = gui.TextInput.init(&self.gui) catch unreachable;
-        self.y_size_input.text.outStream().print("{}", .{self.grid.options.size.y()}) catch unreachable;
-
-        const wrapping_checkbox_label = gui.Label.init(&self.gui, "Wrapping") catch unreachable;
-        wrapping_checkbox_label.element.margin = .{ .left = 2 };
-        self.wrapping_checkbox = gui.Checkbox.init(&self.gui, &wrapping_checkbox_label.element) catch unreachable;
-        self.wrapping_checkbox.onchange = wrapping_changed;
-        self.wrapping_checkbox.userdata = @ptrToInt(self);
-
-        const resize_button_label = gui.Label.init(&self.gui, "Resize") catch unreachable;
-        resize_button_label.element.margin = .{
-            .left = 10,
-            .right = 10,
-        };
-        const resize_button = gui.Button.init(&self.gui, &resize_button_label.element) catch unreachable;
-        resize_button.onclick = resize_clicked;
-        resize_button.userdata = @ptrToInt(self);
-
-        const size_input_flex = gui.Flexbox.init(&self.gui) catch unreachable;
-        size_input_flex.direction = .Col;
-        size_input_flex.addChild(&self.x_size_input.element) catch unreachable;
-        size_input_flex.addChild(&self.y_size_input.element) catch unreachable;
-
         const flex = gui.Flexbox.init(&self.gui) catch unreachable;
         flex.cross_align = .End;
         flex.element.margin = .{ .left = 5, .right = 5, .bottom = 2 };
         flex.addChild(&self.generation_text.element) catch unreachable;
-        flex.addChild(&size_input_flex.element) catch unreachable;
-        flex.addChild(&resize_button.element) catch unreachable;
-        flex.addChild(&self.wrapping_checkbox.element) catch unreachable;
         flex.addChild(&play_pause_button.element) catch unreachable;
         flex.addChild(&press_right_text.element) catch unreachable;
 
@@ -210,54 +174,6 @@ pub const Game = struct {
         };
 
         self.gui.root = &grid_container.element;
-    }
-
-    fn resize_clicked(button: *gui.Button, userdata: ?usize) void {
-        const self = @intToPtr(*@This(), userdata.?);
-
-        const x_size_err = std.fmt.parseInt(usize, std.fmt.trim(self.x_size_input.text.items), 10);
-        const y_size_err = std.fmt.parseInt(usize, std.fmt.trim(self.y_size_input.text.items), 10);
-
-        var was_err = false;
-        var size = Vec(2, usize).init(0, 0);
-
-        if (x_size_err) |x_size| {
-            size.v[0] = x_size;
-            self.x_size_input.fill_style = .{ .Color = constants.TEXT_COLOR };
-        } else |err| {
-            self.x_size_input.fill_style = .{ .Color = constants.INVALID_TEXT_COLOR };
-            was_err = true;
-        }
-        if (y_size_err) |y_size| {
-            size.v[1] = y_size;
-            self.y_size_input.fill_style = .{ .Color = constants.TEXT_COLOR };
-        } else |err| {
-            self.y_size_input.fill_style = .{ .Color = constants.INVALID_TEXT_COLOR };
-            was_err = true;
-        }
-
-        if (!was_err) {
-            const new_grid = GridOfLife.init(self.alloc, .{
-                .size = size,
-                .edge_behaviour = switch (self.wrapping_checkbox.value) {
-                    true => .Wrapping,
-                    false => .Dead,
-                },
-            }) catch {
-                platform.warn("Could not allocate space for new grid", .{});
-                return;
-            };
-            self.grid.deinit(self.alloc);
-            self.grid = new_grid;
-        }
-    }
-
-    fn wrapping_changed(checkbox: *gui.Checkbox, userdata: ?usize) void {
-        const self = @intToPtr(*@This(), userdata.?);
-        self.grid.options.edge_behaviour = switch (checkbox.value) {
-            true => .Wrapping,
-            false => .Dead,
-        };
     }
 
     fn play_pause_clicked(button: *gui.Button, userdata: ?usize) void {
@@ -331,12 +247,12 @@ pub const Game = struct {
                     self.start_cell = self.cursor_pos_to_cell(ev.pos.intToFloat(f32));
                     self.prev_cell = self.start_cell;
                     if (self.grid_clipboard) |clipboard| {
-                        const clipboard_center = clipboard.options.size.scalDiv(2).intCast(isize);
-                        const dest = platform.Rect(isize).initPosAndSize(self.start_cell.sub(clipboard_center), clipboard.options.size.intCast(isize));
-                        const src = platform.Rect(isize).initPosAndSize(Vec(2, isize).init(0, 0), clipboard.options.size.intCast(isize));
-                        self.grid.copy(dest, clipboard, src);
+                        const clipboard_center = clipboard.options.size.scalDiv(2).intCast(i32);
+                        const dest = platform.Rect(i32).initPosAndSize(self.start_cell.sub(clipboard_center), clipboard.options.size.intCast(i32));
+                        const src = platform.Rect(i32).initPosAndSize(Vec(2, i32).init(0, 0), clipboard.options.size.intCast(i32));
+                        //self.grid.copy(dest, clipboard, src);
                     } else {
-                        self.grid.set(self.start_cell, !self.grid.get(self.start_cell));
+                        self.grid.set(self.start_cell, !self.grid.get(self.start_cell)) catch unreachable;
                     }
                 },
                 .Middle => {
@@ -376,15 +292,15 @@ pub const Game = struct {
 
                     // Copy selection to grid clipboard
                     const end_cell = self.cursor_pos_to_cell(ev.pos.intToFloat(f32));
-                    var src_rect = platform.Rect(isize).initTwoPos(self.select_start_cell, end_cell);
-                    src_rect.max = src_rect.max.add(Vec(2, isize).init(1, 1));
+                    var src_rect = platform.Rect(i32).initTwoPos(self.select_start_cell, end_cell);
+                    src_rect.max = src_rect.max.add(Vec(2, i32).init(1, 1));
 
                     if (src_rect.size().x() <= 1 and src_rect.size().y() <= 1) {
                         // Only one cell in the selection, don't copy it
                         return;
                     }
 
-                    const dest_rect = platform.Rect(isize).initPosAndSize(Vec(2, isize).init(0, 0), src_rect.size());
+                    const dest_rect = platform.Rect(i32).initPosAndSize(Vec(2, i32).init(0, 0), src_rect.size());
 
                     self.grid_clipboard = GridOfLife.init(self.alloc, .{
                         .size = dest_rect.size().intCast(usize),
@@ -394,7 +310,7 @@ pub const Game = struct {
                         return;
                     };
 
-                    self.grid_clipboard.?.copy(dest_rect, self.grid, src_rect);
+                    //self.grid_clipboard.?.copy(dest_rect, self.grid, src_rect);
                 },
                 else => {},
             },
@@ -402,13 +318,13 @@ pub const Game = struct {
                 if (self.paused and ev.is_pressed(.Left)) setting_cells: {
                     const current_cell = self.cursor_pos_to_cell(ev.pos.intToFloat(f32));
                     if (self.grid_clipboard) |clipboard| {
-                        const clipboard_center = clipboard.options.size.scalDiv(2).intCast(isize);
-                        const dest = platform.Rect(isize).initPosAndSize(current_cell.sub(clipboard_center), clipboard.options.size.intCast(isize));
-                        const src = platform.Rect(isize).initPosAndSize(Vec(2, isize).init(0, 0), clipboard.options.size.intCast(isize));
-                        self.grid.copy(dest, clipboard, src);
+                        const clipboard_center = clipboard.options.size.scalDiv(2).intCast(i32);
+                        const dest = platform.Rect(i32).initPosAndSize(current_cell.sub(clipboard_center), clipboard.options.size.intCast(i32));
+                        const src = platform.Rect(i32).initPosAndSize(Vec(2, i32).init(0, 0), clipboard.options.size.intCast(i32));
+                        //self.grid.copy(dest, clipboard, src);
                     } else {
                         if (self.start_cell.eql(current_cell)) break :setting_cells;
-                        self.fill_line_on_grid(self.prev_cell, current_cell);
+                        self.fill_line_on_grid(self.prev_cell, current_cell) catch {};
                         self.prev_cell = current_cell;
                     }
                 }
@@ -436,8 +352,11 @@ pub const Game = struct {
         }
     }
 
-    fn cursor_pos_to_cell(self: *@This(), pos: Vec2f) Vec(2, isize) {
-        return self.camera_relative_pos_to_cell(self.cursor_pos_to_camera_relative(pos)).floatToInt(isize);
+    fn cursor_pos_to_cell(self: *@This(), pos: Vec2f) Vec2i {
+        var cell_pos_f = self.camera_relative_pos_to_cell(self.cursor_pos_to_camera_relative(pos));
+        cell_pos_f.v[0] = @floor(cell_pos_f.v[0]);
+        cell_pos_f.v[1] = @floor(cell_pos_f.v[1]);
+        return cell_pos_f.floatToInt(i32);
     }
 
     fn cursor_pos_to_camera_relative(self: *@This(), pos: Vec2f) Vec2f {
@@ -456,7 +375,7 @@ pub const Game = struct {
         return pos.scalMul(self.scale);
     }
 
-    fn fill_line_on_grid(self: *@This(), pos0: Vec(2, isize), pos1: Vec(2, isize)) void {
+    fn fill_line_on_grid(self: *@This(), pos0: Vec2i, pos1: Vec2i) !void {
         var p = pos0;
         var d = pos1.sub(pos0);
         d.v[0] = std.math.absInt(d.v[0]) catch return;
@@ -468,7 +387,7 @@ pub const Game = struct {
         );
         var err = d.x() + d.y();
         while (true) {
-            self.grid.set(p, true);
+            try self.grid.set(p, true);
             if (p.eql(pos1)) break;
             const e2 = 2 * err;
             if (e2 >= d.y()) {
@@ -491,7 +410,9 @@ pub const Game = struct {
 
         if (!self.paused or self.step_once) {
             if (self.ticks_since_last_step > self.ticks_per_step or self.step_once) {
-                self.grid.step();
+                self.grid.step() catch |e| {
+                    platform.warn("Unable to step grid; {}", .{e});
+                };
                 self.step_once = false;
                 self.ticks_since_last_step = 0;
 
@@ -522,12 +443,12 @@ pub const Game = struct {
         const quarter = self.scale / 4;
         context.renderer.set_line_dash(&[_]f32{ quarter, 2 * quarter, quarter, 0 });
 
-        const top_left_cell = self.cursor_pos_to_cell(vec2f(0, 0)).maxComponents(Vec(2, isize).init(0, 0));
-        const bottom_right_cell = self.cursor_pos_to_cell(self.screen_size).add(Vec(2, isize).init(1, 1)).minComponents(self.grid.options.size.intCast(isize));
+        const top_left_cell = self.cursor_pos_to_cell(vec2f(0, 0));
+        const bottom_right_cell = self.cursor_pos_to_cell(self.screen_size).add(Vec(2, i32).init(1, 1));
 
         // Render the grid lines
         context.renderer.begin_path();
-        var y: isize = top_left_cell.y();
+        var y: i32 = top_left_cell.y();
         while (y <= bottom_right_cell.y()) : (y += 1) {
             context.renderer.move_to(
                 grid_offset.x() + @intToFloat(f32, top_left_cell.x()) * self.scale,
@@ -538,7 +459,7 @@ pub const Game = struct {
                 grid_offset.y() + @intToFloat(f32, y) * self.scale,
             );
         }
-        var x: isize = top_left_cell.x();
+        var x: i32 = top_left_cell.x();
         while (x <= bottom_right_cell.x()) : (x += 1) {
             context.renderer.move_to(
                 grid_offset.x() + @intToFloat(f32, x) * self.scale,
@@ -558,10 +479,10 @@ pub const Game = struct {
         while (y <= bottom_right_cell.y() - 1) : (y += 1) {
             x = top_left_cell.x();
             while (x <= bottom_right_cell.x() - 1) : (x += 1) {
-                const pos = vec2is(x, y);
+                const pos = vec2i(x, y);
                 if (self.grid.get(pos)) {
-                    const x_epsilon: f32 = if (self.grid.get(pos.add(vec2is(1, 0)))) 1 else 0;
-                    const y_epsilon: f32 = if (self.grid.get(pos.add(vec2is(0, 1)))) 1 else 0;
+                    const x_epsilon: f32 = if (self.grid.get(pos.add(vec2i(1, 0)))) 1 else 0;
+                    const y_epsilon: f32 = if (self.grid.get(pos.add(vec2i(0, 1)))) 1 else 0;
                     context.renderer.fill_rect(
                         grid_offset.x() + @intToFloat(f32, pos.x()) * self.scale,
                         grid_offset.y() + @intToFloat(f32, pos.y()) * self.scale,
@@ -576,7 +497,7 @@ pub const Game = struct {
         if (self.grid_clipboard) |clipboard| {
             const clipboard_grid_offset = self.cursor_pos_to_cell(self.cursor_pos);
             const clipboard_offset = self.camera_relative_pos_to_cursor(self.cell_pos_to_camera_relative(clipboard_grid_offset.intToFloat(f32)));
-            const clipboard_center = clipboard.options.size.scalDiv(2).intCast(isize);
+            const clipboard_center = clipboard.options.size.scalDiv(2).intCast(i32);
 
             // Draw box around clipboard
             context.renderer.set_stroke_style(.{ .Color = .{ .r = 0x11, .g = 0x77, .b = 0x11, .a = 0xAA } });
@@ -588,11 +509,11 @@ pub const Game = struct {
                 @intToFloat(f32, clipboard.options.size.y()) * self.scale,
             );
 
-            var clipboard_cell_pos = Vec(2, isize).init(0, 0);
+            var clipboard_cell_pos = vec2i(0, 0);
             while (clipboard_cell_pos.y() < clipboard.options.size.y()) : (clipboard_cell_pos.v[1] += 1) {
                 clipboard_cell_pos.v[0] = 0;
                 while (clipboard_cell_pos.x() < clipboard.options.size.x()) : (clipboard_cell_pos.v[0] += 1) {
-                    if (clipboard.get(clipboard_cell_pos)) {
+                    if (clipboard.get(clipboard_cell_pos.intCast(isize))) {
                         context.renderer.set_fill_style(.{ .Color = .{ .r = 0x77, .g = 0x77, .b = 0x77, .a = 0xAA } });
                         context.renderer.fill_rect(
                             clipboard_offset.x() + @intToFloat(f32, clipboard_cell_pos.x() - clipboard_center.x()) * self.scale,
@@ -615,22 +536,17 @@ pub const Game = struct {
 
         if (self.paused and self.grid_clipboard == null) {
             const highlight_cell_pos = self.cursor_pos_to_cell(self.cursor_pos);
-            if (self.grid.get_bounds_check(highlight_cell_pos)) |cell| {
-                if (cell) {
-                    context.renderer.set_fill_style(.{ .Color = .{ .r = 0x77, .g = 0x77, .b = 0x77, .a = 0xFF } });
-                } else {
-                    context.renderer.set_fill_style(.{ .Color = .{ .r = 0xDD, .g = 0xDD, .b = 0xDD, .a = 0xFF } });
-                }
-                const draw_pos = highlight_cell_pos.intToFloat(f32).scalMul(self.scale).add(grid_offset);
-                const epsilon: f32 = if (cell) 1 else 0;
-                const x_epsilon: f32 = if (self.grid.get(highlight_cell_pos.add(vec2is(1, 0)))) epsilon else 0;
-                const y_epsilon: f32 = if (self.grid.get(highlight_cell_pos.add(vec2is(0, 1)))) epsilon else 0;
-                context.renderer.fill_rect(draw_pos.x(), draw_pos.y(), self.scale + x_epsilon, self.scale + y_epsilon);
+            if (self.grid.get(highlight_cell_pos)) {
+                context.renderer.set_fill_style(.{ .Color = .{ .r = 0x77, .g = 0x77, .b = 0x77, .a = 0xFF } });
+            } else {
+                context.renderer.set_fill_style(.{ .Color = .{ .r = 0xDD, .g = 0xDD, .b = 0xDD, .a = 0xFF } });
             }
+            const draw_pos = highlight_cell_pos.intToFloat(f32).scalMul(self.scale).add(grid_offset);
+            context.renderer.fill_rect(draw_pos.x(), draw_pos.y(), self.scale, self.scale);
         }
         if (self.paused and self.is_selecting) {
             const current_cell = self.cursor_pos_to_cell(self.cursor_pos);
-            const rect = platform.Rect(isize).initTwoPos(self.select_start_cell, current_cell);
+            const rect = platform.Rect(i32).initTwoPos(self.select_start_cell, current_cell);
             context.renderer.set_fill_style(.{ .Color = .{ .r = 0x77, .g = 0x77, .b = 0x77, .a = 0x77 } });
             context.renderer.fill_rect(
                 grid_offset.x() + @intToFloat(f32, rect.min.x()) * self.scale,
@@ -656,7 +572,7 @@ pub const Game = struct {
     pub fn deinit(screenPtr: *Screen, context: *Context) void {
         const self = @fieldParentPtr(@This(), "screen", screenPtr);
 
-        self.grid.deinit(self.alloc);
+        self.grid.deinit();
         if (self.grid_clipboard) |clipboard| {
             clipboard.deinit(self.alloc);
         }
