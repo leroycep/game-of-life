@@ -432,48 +432,50 @@ pub const Game = struct {
 
         const grid_offset = self.camera_relative_pos_to_cursor(Vec2f.init(0, 0));
 
-        context.renderer.set_stroke_style(.{ .Color = .{ .r = 0xCC, .g = 0xCC, .b = 0xCC, .a = 255 } });
-        context.renderer.set_line_cap(.square);
-        context.renderer.set_line_width(1.5);
-
-        const quarter = self.scale / 4;
-        context.renderer.set_line_dash(&[_]f32{ quarter, 2 * quarter, quarter, 0 });
-
         const top_left_cell = self.cursor_pos_to_cell(vec2f(0, 0));
         const bottom_right_cell = self.cursor_pos_to_cell(self.screen_size).add(Vec(2, i32).init(1, 1));
 
-        // Render the grid lines
-        context.renderer.begin_path();
-        var y: i32 = top_left_cell.y();
-        while (y <= bottom_right_cell.y()) : (y += 1) {
-            context.renderer.move_to(
-                grid_offset.x() + @intToFloat(f32, top_left_cell.x()) * self.scale,
-                grid_offset.y() + @intToFloat(f32, y) * self.scale,
-            );
-            context.renderer.line_to(
-                grid_offset.x() + @intToFloat(f32, bottom_right_cell.x()) * self.scale,
-                grid_offset.y() + @intToFloat(f32, y) * self.scale,
-            );
+        if (self.scale > 8) {
+            context.renderer.set_stroke_style(.{ .Color = .{ .r = 0xCC, .g = 0xCC, .b = 0xCC, .a = 255 } });
+            context.renderer.set_line_cap(.square);
+            context.renderer.set_line_width(1.5);
+
+            const quarter = self.scale / 4;
+            context.renderer.set_line_dash(&[_]f32{ quarter, 2 * quarter, quarter, 0 });
+
+            // Render the grid lines
+            context.renderer.begin_path();
+            var y: i32 = top_left_cell.y();
+            while (y <= bottom_right_cell.y()) : (y += 1) {
+                context.renderer.move_to(
+                    grid_offset.x() + @intToFloat(f32, top_left_cell.x()) * self.scale,
+                    grid_offset.y() + @intToFloat(f32, y) * self.scale,
+                );
+                context.renderer.line_to(
+                    grid_offset.x() + @intToFloat(f32, bottom_right_cell.x()) * self.scale,
+                    grid_offset.y() + @intToFloat(f32, y) * self.scale,
+                );
+            }
+            var x: i32 = top_left_cell.x();
+            while (x <= bottom_right_cell.x()) : (x += 1) {
+                context.renderer.move_to(
+                    grid_offset.x() + @intToFloat(f32, x) * self.scale,
+                    grid_offset.y() + @intToFloat(f32, top_left_cell.y()) * self.scale,
+                );
+                context.renderer.line_to(
+                    grid_offset.x() + @intToFloat(f32, x) * self.scale,
+                    grid_offset.y() + @intToFloat(f32, bottom_right_cell.y()) * self.scale,
+                );
+            }
+            context.renderer.stroke();
         }
-        var x: i32 = top_left_cell.x();
-        while (x <= bottom_right_cell.x()) : (x += 1) {
-            context.renderer.move_to(
-                grid_offset.x() + @intToFloat(f32, x) * self.scale,
-                grid_offset.y() + @intToFloat(f32, top_left_cell.y()) * self.scale,
-            );
-            context.renderer.line_to(
-                grid_offset.x() + @intToFloat(f32, x) * self.scale,
-                grid_offset.y() + @intToFloat(f32, bottom_right_cell.y()) * self.scale,
-            );
-        }
-        context.renderer.stroke();
 
         // Render the grid cells
         context.renderer.set_fill_style(.{ .Color = .{ .r = 100, .g = 100, .b = 100, .a = 255 } });
 
-        y = top_left_cell.y();
+        var y = top_left_cell.y();
         while (y <= bottom_right_cell.y() - 1) : (y += 1) {
-            x = top_left_cell.x();
+            var x = top_left_cell.x();
             while (x <= bottom_right_cell.x() - 1) : (x += 1) {
                 const pos = vec2i(x, y);
                 if (self.grid.get(pos)) {
