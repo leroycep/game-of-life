@@ -37,18 +37,21 @@ given I have the time.
 [lambda school]: https://lambdaschool.com/
 
 - [x] Infinite Grid
-  - I had a plan to split the grid into a bunch of chunks, and then only keep
-    active chunks loaded.
-  - This would've been so cool! But I decided to focus on making the app more
-    usable first
+  - ~I had a plan to split the grid into a bunch of chunks, and then only keep
+    active chunks loaded.~
+  - ~This would've been so cool! But I decided to focus on making the app more
+    usable first~
+  - This is now implemented! The world is split into chunks and only active chunks
+    are kept loaded. :)
 - [ ] Saving and Loading Worlds
 - [ ] Importing and Exporting schematics
   - I wanted some way of sharing cool designs with other people
   - The clipboard system was the first step towards this
-- [ ] Rotating the clipboard
-  - Placing schmatics is cool and all, but I need my gliders to go in arbitrary
-    directions!
-  - Nobodies got time to draw everything out!
+- [x] Rotating the clipboard
+  - ~Placing schmatics is cool and all, but I need my gliders to go in arbitrary
+    directions!~
+  - ~Nobodies got time to draw everything out!~
+  - This is implemented! Select a section of the grid using right click, and then rotate it by pressing the 'r'
 - [ ] Native Application
   - I got an initial implementation of the app working using SDL and
     [Pathfinder][], but I stopped supporting it so I could spend more time on
