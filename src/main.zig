@@ -1,6 +1,6 @@
 const std = @import("std");
 const seizer = @import("seizer");
-const game_screen = @import("./screen/game.zig");
+const game_screen = @import("./app.zig");
 
 pub const panic = seizer.panic;
 pub const log = seizer.log;

@@ -1,13 +1,12 @@
 const std = @import("std");
-const platform = @import("../../../platform.zig");
 const seizer = @import("seizer");
 
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
-const Element = platform.gui.Element;
-const Gui = platform.gui.Gui;
-const Event = platform.gui.Event;
-const Rect = platform.Rect;
+const Element = @import("./gui.zig").Element;
+const Gui = @import("./gui.zig").Gui;
+const Event = @import("./gui.zig").Event;
+const Rect = @import("../rect.zig").Rect;
 const Vec2f = seizer.math.Vec(2, f32);
 const FillStyle = platform.renderer.FillStyle;
 const TextAlign = platform.renderer.TextAlign;

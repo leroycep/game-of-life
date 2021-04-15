@@ -10,7 +10,7 @@ const Vec2i = Vec(2, i32);
 const vec2i = Vec(2, i32).init;
 const vec2us = Vec(2, usize).init;
 const vec2is = Vec(2, isize).init;
-const Rect = @import("../platform/common/rect.zig").Rect;
+const Rect = @import("../rect.zig").Rect;
 
 pub const patterns = @import("./patterns.zig");
 

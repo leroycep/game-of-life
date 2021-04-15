@@ -12,7 +12,7 @@ const vec2f = Vec(2, f32).init;
 const Vec2i = Vec(2, i32);
 const vec2i = Vec(2, i32).init;
 const vec2us = Vec(2, usize).init;
-const Rect = @import("../platform/common/rect.zig").Rect;
+const Rect = @import("../rect.zig").Rect;
 
 const CHUNK_SIZE_LOG2 = 4;
 const CHUNK_SIZE = 1 << CHUNK_SIZE_LOG2;
