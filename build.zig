@@ -45,8 +45,7 @@ pub fn build(b: *Builder) void {
     wasm.step.dependOn(&b.addExecutable("canvas_generate", "tools/canvas_generate.zig").run().step);
     wasm.addPackage(CANVAS);
 
-    const wasmOutDir = b.fmt("{s}" ++ sep_str ++ SITE_DIR, .{b.install_prefix});
-    wasm.setOutputDir(wasmOutDir);
+    wasm.override_dest_dir = std.build.InstallDir{ .Custom = SITE_DIR };
     wasm.setBuildMode(b.standardReleaseOptions());
     wasm.setTarget(.{
         .cpu_arch = .wasm32,
@@ -57,9 +56,10 @@ pub fn build(b: *Builder) void {
     const staticFilesInstall = b.addInstallDirectory(.{
         .source_dir = "static",
         .install_dir = .Prefix,
-        .install_subdir = "www",
+        .install_subdir = SITE_DIR,
     });
     wasm.step.dependOn(&staticFilesInstall.step);
+    wasm.install();
 
     b.step("wasm", "Build WASM binary").dependOn(&wasm.step);
     b.step("test", "Run tests").dependOn(&tests.step);

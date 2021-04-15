@@ -47,7 +47,6 @@ pub const Label = struct {
         return false;
     }
 
-    var updates: u32 = 0;
     pub fn minimumSize(element: *Element, gui: *Gui) Vec2f {
         const self = @fieldParentPtr(@This(), "element", element);
 
@@ -55,11 +54,6 @@ pub const Label = struct {
         canvas.set_text_baseline(self.text_baseline);
         const metrics = canvas.measure_text(self.text);
         
-        if (updates % 39 == 0) {
-            std.log.debug("metrics = {}", .{ metrics });
-        }
-        updates +%= 1;
-
         return Vec2f.init(@floatCast(f32, metrics.width), @floatCast(f32, metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent));
     }
 
