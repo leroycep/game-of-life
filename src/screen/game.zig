@@ -1,20 +1,20 @@
 const std = @import("std");
-const screen = @import("../screen.zig");
-const Screen = screen.Screen;
-const platform = @import("../platform.zig");
-const gui = platform.gui;
-const Vec = platform.Vec;
-const Vec2f = platform.Vec2f;
-const vec2f = platform.vec2f;
-const Vec2i = platform.Vec2i;
-const vec2us = platform.vec2us;
-const vec2i = platform.vec2i;
-const Context = platform.Context;
-const Renderer = platform.Renderer;
+const seizer = @import("seizer");
+const gui = @import("../platform/common/gui/gui.zig");
+
+const Vec = seizer.math.Vec;
+const Vec2f = Vec(2, f32);
+const vec2f = Vec(2, f32).init;
+const Vec2i = Vec(2, i32);
+const vec2i = Vec(2, i32).init;
+const vec2us = Vec(2, usize).init;
+const Rect = @import("../platform/common/rect.zig").Rect;
+
 const game = @import("../game.zig");
 const World = game.World;
 const GridOfLife = game.GridOfLife;
 const constants = @import("../constants.zig");
+const canvas = @import("canvas");
 
 const DEFAULT_GRID_WIDTH = 100;
 const DEFAULT_GRID_HEIGHT = 100;
@@ -27,7 +27,6 @@ const TEXT_PRESS_RIGHT = "Press → to advance one step";
 
 pub const Game = struct {
     alloc: *std.mem.Allocator,
-    screen: Screen,
 
     quit_pressed: bool = false,
     paused: bool,
@@ -54,8 +53,7 @@ pub const Game = struct {
     ticks_since_last_step: f32 = 0,
     grid: World,
 
-    pub fn init(alloc: *std.mem.Allocator) !*@This() {
-        const self = try alloc.create(@This());
+    pub fn init(alloc: *std.mem.Allocator) !@This() {
         var grid = try World.init(alloc);
         errdefer grid.deinit();
         const grid_clipboard = try GridOfLife.init(alloc, .{
@@ -63,15 +61,8 @@ pub const Game = struct {
             .edge_behaviour = .Dead,
         });
         errdefer grid_clipboard.deinit(alloc);
-        self.* = .{
+        return @This(){
             .alloc = alloc,
-            .screen = .{
-                .startFn = start,
-                .onEventFn = onEvent,
-                .updateFn = update,
-                .renderFn = render,
-                .deinitFn = deinit,
-            },
             .paused = true,
             .step_once = false,
             .start_cell = vec2i(-1, -1),
@@ -84,11 +75,10 @@ pub const Game = struct {
             .generation_text = undefined,
             .gui = gui.Gui.init(alloc),
         };
-        return self;
     }
 
-    pub fn start(screenPtr: *Screen, context: *Context) void {
-        const self = @fieldParentPtr(@This(), "screen", screenPtr);
+    pub fn start(self: *@This()) void {
+        self.screen_size = seizer.getScreenSize().intToFloat(f32);
 
         self.generation_text = gui.Label.init(&self.gui, std.mem.dupe(self.alloc, u8, "Generation #0") catch unreachable) catch unreachable;
         self.generation_text.text_align = .Left;
@@ -152,7 +142,7 @@ pub const Game = struct {
         };
         const fullscreen_button = gui.Button.init(&self.gui, &fullscreen_button_label.element) catch unreachable;
         fullscreen_button.onclick = fullscreen_clicked;
-        fullscreen_button.userdata = @ptrToInt(context);
+        fullscreen_button.userdata = @ptrToInt(self);
 
         const fullscreen_button_flex = gui.Flexbox.init(&self.gui) catch unreachable;
         fullscreen_button_flex.direction = .Row;
@@ -181,8 +171,7 @@ pub const Game = struct {
     }
 
     fn fullscreen_clicked(button: *gui.Button, userdata: ?usize) void {
-        const context = @intToPtr(*Context, userdata.?);
-        context.request_fullscreen();
+        //context.request_fullscreen();
     }
 
     const PatternClosure = struct {
@@ -196,7 +185,7 @@ pub const Game = struct {
                 closure.game.grid_clipboard = null;
             }
             closure.game.grid_clipboard = closure.pattern.to_grid_of_life(closure.game.alloc) catch {
-                platform.warn("Could not allocate space for new grid", .{});
+                std.log.warn("Could not allocate space for new grid", .{});
                 return;
             };
         }
@@ -219,14 +208,13 @@ pub const Game = struct {
         self.paused_text.text = if (self.paused) "Start" else "Stop";
     }
 
-    pub fn onEvent(screenPtr: *Screen, context: *Context, event: platform.Event) void {
-        const self = @fieldParentPtr(@This(), "screen", screenPtr);
-        if (self.gui.onEvent(context, event)) {
+    pub fn onEvent(self: *@This(), event: seizer.event.Event) void {
+        if (self.gui.onEvent(event)) {
             // The event has been consumed by the UI
             return;
         }
         switch (event) {
-            .Quit => platform.quit(),
+            .Quit => seizer.quit(),
             .KeyDown => |ev| switch (ev.scancode) {
                 .ESCAPE => self.quit_pressed = true,
                 .SPACE => self.toggle_play_pause(),
@@ -246,10 +234,10 @@ pub const Game = struct {
                     self.start_cell = self.cursor_pos_to_cell(ev.pos.intToFloat(f32));
                     self.prev_cell = self.start_cell;
                     if (self.grid_clipboard) |clipboard| {
-                        const clipboard_center = clipboard.options.size.scalDiv(2).intCast(i32);
-                        const dest = self.start_cell.sub(clipboard_center);
+                        const clipboard_center = clipboard.options.size.scaleDiv(2).intCast(i32);
+                        const dest = self.start_cell.subv(clipboard_center);
                         clipboard.paste(&self.grid, dest) catch |e| {
-                            platform.warn("Failed to paste clipboard to grid, {}", .{e});
+                            std.log.warn("Failed to paste clipboard to grid, {}", .{e});
                         };
                     } else {
                         self.grid.set(self.start_cell, !self.grid.get(self.start_cell)) catch unreachable;
@@ -258,7 +246,8 @@ pub const Game = struct {
                 .Middle => {
                     self.start_pan = ev.pos;
                     self.start_pan_camera_pos = self.camera_pos;
-                    context.set_cursor(.grabbing);
+                    // TODO: reimplement set_cursor
+                    //context.set_cursor(.grabbing);
                 },
                 .Right => {
                     self.select_start_cell = self.cursor_pos_to_cell(ev.pos.intToFloat(f32));
@@ -279,11 +268,13 @@ pub const Game = struct {
                 .Middle => {
                     self.start_pan = null;
                     self.start_pan_camera_pos = null;
-                    context.set_cursor(.default);
+                    // TODO: reimplement set_cursor
+                    // context.set_cursor(.default);
                 },
                 .Right => {
                     self.is_selecting = false;
-                    context.set_cursor(.default);
+                    // TODO: reimplement set_cursor
+                    // context.set_cursor(.default);
 
                     if (!self.paused) {
                         // Don't copy the grid while the simulation is running, only allow emptying the clipboard
@@ -292,16 +283,16 @@ pub const Game = struct {
 
                     // Copy selection to grid clipboard
                     const end_cell = self.cursor_pos_to_cell(ev.pos.intToFloat(f32));
-                    var src_rect = platform.Rect(i32).initTwoPos(self.select_start_cell, end_cell);
-                    src_rect.max = src_rect.max.add(Vec(2, i32).init(1, 1));
+                    var src_rect = Rect(i32).initTwoPos(self.select_start_cell, end_cell);
+                    src_rect.max = src_rect.max.add(1, 1);
 
-                    if (src_rect.size().x() <= 1 and src_rect.size().y() <= 1) {
+                    if (src_rect.size().x <= 1 and src_rect.size().y <= 1) {
                         // Only one cell in the selection, don't copy it
                         return;
                     }
 
                     self.grid_clipboard = GridOfLife.copy(self.alloc, self.grid, src_rect) catch |e| {
-                        platform.warn("Could not allocate space for grid clipboard, {}", .{e});
+                        std.log.warn("Could not allocate space for grid clipboard, {}", .{e});
                         return;
                     };
                 },
@@ -311,10 +302,10 @@ pub const Game = struct {
                 if (self.paused and ev.is_pressed(.Left)) setting_cells: {
                     const current_cell = self.cursor_pos_to_cell(ev.pos.intToFloat(f32));
                     if (self.grid_clipboard) |clipboard| {
-                        const clipboard_center = clipboard.options.size.scalDiv(2).intCast(i32);
-                        const dest = current_cell.sub(clipboard_center);
+                        const clipboard_center = clipboard.options.size.scaleDiv(2).intCast(i32);
+                        const dest = current_cell.subv(clipboard_center);
                         clipboard.paste(&self.grid, dest) catch |e| {
-                            platform.warn("Failed to paste clipboard to grid, {}", .{e});
+                            std.log.warn("Failed to paste clipboard to grid, {}", .{e});
                         };
                     } else {
                         if (self.start_cell.eql(current_cell)) break :setting_cells;
@@ -322,10 +313,11 @@ pub const Game = struct {
                         self.prev_cell = current_cell;
                     }
                 }
+                //std.log.debug("mouse motion buttons = {}", .{ev.buttons});
                 if (ev.is_pressed(.Middle)) panning: {
                     const start_pan = self.start_pan orelse break :panning;
                     const start_camera_pos = self.start_pan_camera_pos orelse break :panning;
-                    self.camera_pos = start_pan.sub(ev.pos).intToFloat(f32).add(start_camera_pos);
+                    self.camera_pos = start_pan.subv(ev.pos).intToFloat(f32).addv(start_camera_pos);
                 }
                 self.cursor_pos = ev.pos.intToFloat(f32);
             },
@@ -333,11 +325,11 @@ pub const Game = struct {
                 // Save the position of the cursor in the world
                 const cursor_world_pos = self.camera_relative_pos_to_cell(self.cursor_pos_to_camera_relative(self.cursor_pos));
 
-                const deltaY = @intToFloat(f32, delta.y()) * -1;
+                const deltaY = @intToFloat(f32, delta.y) * -1;
                 self.scale = std.math.clamp(self.scale + deltaY, MIN_SCALE, MAX_SCALE);
 
                 // Set the camera position so that the cursor stays in the same spot in the world
-                self.camera_pos = self.cell_pos_to_camera_relative(cursor_world_pos).sub(self.cursor_pos).add(self.screen_size.scalMul(0.5));
+                self.camera_pos = self.cell_pos_to_camera_relative(cursor_world_pos).subv(self.cursor_pos).addv(self.screen_size.scale(0.5));
             },
             .ScreenResized => |size| {
                 self.screen_size = size.intToFloat(f32);
@@ -348,56 +340,54 @@ pub const Game = struct {
 
     fn cursor_pos_to_cell(self: *@This(), pos: Vec2f) Vec2i {
         var cell_pos_f = self.camera_relative_pos_to_cell(self.cursor_pos_to_camera_relative(pos));
-        cell_pos_f.v[0] = @floor(cell_pos_f.v[0]);
-        cell_pos_f.v[1] = @floor(cell_pos_f.v[1]);
+        cell_pos_f.x = @floor(cell_pos_f.x);
+        cell_pos_f.y = @floor(cell_pos_f.y);
         return cell_pos_f.floatToInt(i32);
     }
 
     fn cursor_pos_to_camera_relative(self: *@This(), pos: Vec2f) Vec2f {
-        return pos.sub(self.screen_size.scalMul(0.5)).add(self.camera_pos);
+        return pos.subv(self.screen_size.scale(0.5)).addv(self.camera_pos);
     }
 
     fn camera_relative_pos_to_cursor(self: *@This(), pos: Vec2f) Vec2f {
-        return pos.add(self.screen_size.scalMul(0.5)).sub(self.camera_pos);
+        return pos.addv(self.screen_size.scale(0.5)).subv(self.camera_pos);
     }
 
     fn camera_relative_pos_to_cell(self: *@This(), pos: Vec2f) Vec2f {
-        return pos.scalDiv(self.scale);
+        return pos.scaleDiv(self.scale);
     }
 
     fn cell_pos_to_camera_relative(self: *@This(), pos: Vec2f) Vec2f {
-        return pos.scalMul(self.scale);
+        return pos.scale(self.scale);
     }
 
     fn fill_line_on_grid(self: *@This(), pos0: Vec2i, pos1: Vec2i) !void {
         var p = pos0;
-        var d = pos1.sub(pos0);
-        d.v[0] = std.math.absInt(d.v[0]) catch return;
-        d.v[1] = -(std.math.absInt(d.v[1]) catch return);
+        var d = pos1.subv(pos0);
+        d.x = std.math.absInt(d.x) catch return;
+        d.y = -(std.math.absInt(d.y) catch return);
 
         const signs = Vec2i.init(
-            if (pos0.x() < pos1.x()) 1 else -1,
-            if (pos0.y() < pos1.y()) 1 else -1,
+            if (pos0.x < pos1.x) 1 else -1,
+            if (pos0.y < pos1.y) 1 else -1,
         );
-        var err = d.x() + d.y();
+        var err = d.x + d.y;
         while (true) {
             try self.grid.set(p, true);
             if (p.eql(pos1)) break;
             const e2 = 2 * err;
-            if (e2 >= d.y()) {
-                err += d.y();
-                p.v[0] += signs.x();
+            if (e2 >= d.y) {
+                err += d.y;
+                p.x += signs.x;
             }
-            if (e2 <= d.y()) {
-                err += d.x();
-                p.v[1] += signs.y();
+            if (e2 <= d.y) {
+                err += d.x;
+                p.y += signs.y;
             }
         }
     }
 
-    pub fn update(screenPtr: *Screen, context: *Context, time: f64, delta: f64) ?screen.Transition {
-        const self = @fieldParentPtr(@This(), "screen", screenPtr);
-
+    pub fn update(self: *@This(), time: f64, delta: f64) void {
         if (self.quit_pressed) {
             self.quit_pressed = false;
         }
@@ -405,72 +395,68 @@ pub const Game = struct {
         if (!self.paused or self.step_once) {
             if (self.ticks_since_last_step > self.ticks_per_step or self.step_once) {
                 self.grid.step() catch |e| {
-                    platform.warn("Unable to step grid; {}", .{e});
+                    std.log.warn("Unable to step grid; {}", .{e});
                     self.paused = true;
                 };
                 self.step_once = false;
                 self.ticks_since_last_step = 0;
 
                 // Update generation text label
-                context.alloc.free(self.generation_text.text);
-                self.generation_text.text = std.fmt.allocPrint(context.alloc, "Generation #{}", .{self.grid.generation}) catch unreachable;
+                self.alloc.free(self.generation_text.text);
+                self.generation_text.text = std.fmt.allocPrint(self.alloc, "Generation #{}", .{self.grid.generation}) catch unreachable;
             }
             self.ticks_since_last_step += 1;
         }
-
-        return null;
     }
 
-    pub fn render(screenPtr: *Screen, context: *Context, alpha: f64) void {
-        const self = @fieldParentPtr(@This(), "screen", screenPtr);
+    pub fn render(self: *@This(), alpha: f64) void {
+        canvas.begin();
 
-        context.renderer.begin();
-
-        context.renderer.set_fill_style(.{ .Color = .{ .r = 255, .g = 255, .b = 255, .a = 255 } });
-        context.renderer.fill_rect(0, 0, self.screen_size.x(), self.screen_size.y());
+        canvas.set_fill_style(.{ .Color = .{ .r = 255, .g = 255, .b = 255, .a = 255 } });
+        canvas.fill_rect(0, 0, self.screen_size.x, self.screen_size.y);
 
         const grid_offset = self.camera_relative_pos_to_cursor(Vec2f.init(0, 0));
 
-        const cell_rect = platform.Rect(i32).initMinAndMax(
+        const cell_rect = Rect(i32).initMinAndMax(
             self.cursor_pos_to_cell(vec2f(0, 0)),
-            self.cursor_pos_to_cell(self.screen_size).add(Vec(2, i32).init(1, 1)),
+            self.cursor_pos_to_cell(self.screen_size).add(1, 1),
         );
 
-        self.grid.render(context.renderer, cell_rect, grid_offset, self.scale);
+        self.grid.render(cell_rect, grid_offset, self.scale);
 
         // Render the clipboard over the other grid
         if (self.grid_clipboard) |clipboard| {
             const clipboard_grid_offset = self.cursor_pos_to_cell(self.cursor_pos);
             const clipboard_offset = self.camera_relative_pos_to_cursor(self.cell_pos_to_camera_relative(clipboard_grid_offset.intToFloat(f32)));
-            const clipboard_center = clipboard.options.size.scalDiv(2).intCast(i32);
+            const clipboard_center = clipboard.options.size.scaleDiv(2).intCast(i32);
 
             // Draw box around clipboard
-            context.renderer.set_stroke_style(.{ .Color = .{ .r = 0x11, .g = 0x77, .b = 0x11, .a = 0xAA } });
-            context.renderer.set_line_dash(&[_]f32{});
-            context.renderer.stroke_rect(
-                clipboard_offset.x() - @intToFloat(f32, clipboard_center.x()) * self.scale,
-                clipboard_offset.y() - @intToFloat(f32, clipboard_center.y()) * self.scale,
-                @intToFloat(f32, clipboard.options.size.x()) * self.scale,
-                @intToFloat(f32, clipboard.options.size.y()) * self.scale,
+            canvas.set_stroke_style(.{ .Color = .{ .r = 0x11, .g = 0x77, .b = 0x11, .a = 0xAA } });
+            canvas.set_line_dash(&[_]f32{});
+            canvas.stroke_rect(
+                clipboard_offset.x - @intToFloat(f32, clipboard_center.x) * self.scale,
+                clipboard_offset.y - @intToFloat(f32, clipboard_center.y) * self.scale,
+                @intToFloat(f32, clipboard.options.size.x) * self.scale,
+                @intToFloat(f32, clipboard.options.size.y) * self.scale,
             );
 
             var clipboard_cell_pos = vec2i(0, 0);
-            while (clipboard_cell_pos.y() < clipboard.options.size.y()) : (clipboard_cell_pos.v[1] += 1) {
-                clipboard_cell_pos.v[0] = 0;
-                while (clipboard_cell_pos.x() < clipboard.options.size.x()) : (clipboard_cell_pos.v[0] += 1) {
+            while (clipboard_cell_pos.y < clipboard.options.size.y) : (clipboard_cell_pos.y += 1) {
+                clipboard_cell_pos.x = 0;
+                while (clipboard_cell_pos.x < clipboard.options.size.x) : (clipboard_cell_pos.x += 1) {
                     if (clipboard.get(clipboard_cell_pos.intCast(isize))) {
-                        context.renderer.set_fill_style(.{ .Color = .{ .r = 0x77, .g = 0x77, .b = 0x77, .a = 0xAA } });
-                        context.renderer.fill_rect(
-                            clipboard_offset.x() + @intToFloat(f32, clipboard_cell_pos.x() - clipboard_center.x()) * self.scale,
-                            clipboard_offset.y() + @intToFloat(f32, clipboard_cell_pos.y() - clipboard_center.y()) * self.scale,
+                        canvas.set_fill_style(.{ .Color = .{ .r = 0x77, .g = 0x77, .b = 0x77, .a = 0xAA } });
+                        canvas.fill_rect(
+                            clipboard_offset.x + @intToFloat(f32, clipboard_cell_pos.x - clipboard_center.x) * self.scale,
+                            clipboard_offset.y + @intToFloat(f32, clipboard_cell_pos.y - clipboard_center.y) * self.scale,
                             self.scale,
                             self.scale,
                         );
-                    } else if (self.grid.get(clipboard_grid_offset.add(clipboard_cell_pos).sub(clipboard_center))) {
-                        context.renderer.set_fill_style(.{ .Color = .{ .r = 0x77, .g = 0x11, .b = 0x11, .a = 0xAA } });
-                        context.renderer.fill_rect(
-                            clipboard_offset.x() + @intToFloat(f32, clipboard_cell_pos.x() - clipboard_center.x()) * self.scale,
-                            clipboard_offset.y() + @intToFloat(f32, clipboard_cell_pos.y() - clipboard_center.y()) * self.scale,
+                    } else if (self.grid.get(clipboard_grid_offset.addv(clipboard_cell_pos).subv(clipboard_center))) {
+                        canvas.set_fill_style(.{ .Color = .{ .r = 0x77, .g = 0x11, .b = 0x11, .a = 0xAA } });
+                        canvas.fill_rect(
+                            clipboard_offset.x + @intToFloat(f32, clipboard_cell_pos.x - clipboard_center.x) * self.scale,
+                            clipboard_offset.y + @intToFloat(f32, clipboard_cell_pos.y - clipboard_center.y) * self.scale,
                             self.scale,
                             self.scale,
                         );
@@ -482,41 +468,39 @@ pub const Game = struct {
         if (self.paused and self.grid_clipboard == null) {
             const highlight_cell_pos = self.cursor_pos_to_cell(self.cursor_pos);
             if (self.grid.get(highlight_cell_pos)) {
-                context.renderer.set_fill_style(.{ .Color = .{ .r = 0x77, .g = 0x77, .b = 0x77, .a = 0xFF } });
+                canvas.set_fill_style(.{ .Color = .{ .r = 0x77, .g = 0x77, .b = 0x77, .a = 0xFF } });
             } else {
-                context.renderer.set_fill_style(.{ .Color = .{ .r = 0xDD, .g = 0xDD, .b = 0xDD, .a = 0xFF } });
+                canvas.set_fill_style(.{ .Color = .{ .r = 0xDD, .g = 0xDD, .b = 0xDD, .a = 0xFF } });
             }
-            const draw_pos = highlight_cell_pos.intToFloat(f32).scalMul(self.scale).add(grid_offset);
-            context.renderer.fill_rect(draw_pos.x(), draw_pos.y(), self.scale, self.scale);
+            const draw_pos = highlight_cell_pos.intToFloat(f32).scale(self.scale).addv(grid_offset);
+            canvas.fill_rect(draw_pos.x, draw_pos.y, self.scale, self.scale);
         }
         if (self.paused and self.is_selecting) {
             const current_cell = self.cursor_pos_to_cell(self.cursor_pos);
-            const rect = platform.Rect(i32).initTwoPos(self.select_start_cell, current_cell);
-            context.renderer.set_fill_style(.{ .Color = .{ .r = 0x77, .g = 0x77, .b = 0x77, .a = 0x77 } });
-            context.renderer.fill_rect(
-                grid_offset.x() + @intToFloat(f32, rect.min.x()) * self.scale,
-                grid_offset.y() + @intToFloat(f32, rect.min.y()) * self.scale,
-                @intToFloat(f32, rect.size().x() + 1) * self.scale,
-                @intToFloat(f32, rect.size().y() + 1) * self.scale,
+            const rect = Rect(i32).initTwoPos(self.select_start_cell, current_cell);
+            canvas.set_fill_style(.{ .Color = .{ .r = 0x77, .g = 0x77, .b = 0x77, .a = 0x77 } });
+            canvas.fill_rect(
+                grid_offset.x + @intToFloat(f32, rect.min.x) * self.scale,
+                grid_offset.y + @intToFloat(f32, rect.min.y) * self.scale,
+                @intToFloat(f32, rect.size().x + 1) * self.scale,
+                @intToFloat(f32, rect.size().y + 1) * self.scale,
             );
         }
 
-        context.renderer.set_fill_style(.{ .Color = .{ .r = 100, .g = 100, .b = 100, .a = 255 } });
+        canvas.set_fill_style(.{ .Color = .{ .r = 100, .g = 100, .b = 100, .a = 255 } });
         var buf: [100]u8 = undefined;
         {
             const text = std.fmt.bufPrint(&buf, "Ticks Per Step: {d}, Ticks: {d}", .{ self.ticks_per_step, self.ticks_since_last_step }) catch return;
-            context.renderer.set_text_align(.Left);
-            context.renderer.fill_text(text, 20, self.screen_size.y() - 40);
+            canvas.set_text_align(.Left);
+            canvas.fill_text(text, 20, self.screen_size.y - 40);
         }
 
-        self.gui.render(context, alpha);
+        self.gui.render(alpha);
 
-        context.renderer.flush();
+        canvas.flush();
     }
 
-    pub fn deinit(screenPtr: *Screen, context: *Context) void {
-        const self = @fieldParentPtr(@This(), "screen", screenPtr);
-
+    pub fn deinit(self: *@This()) void {
         self.grid.deinit();
         if (self.grid_clipboard) |clipboard| {
             clipboard.deinit(self.alloc);

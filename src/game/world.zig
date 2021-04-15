@@ -1,15 +1,18 @@
 const std = @import("std");
-const platform = @import("../platform.zig");
+const seizer = @import("seizer");
 const Allocator = std.mem.Allocator;
 const AutoHashMap = std.AutoHashMap;
 const ArrayList = std.ArrayList;
-const Vec = platform.Vec;
-const Vec2f = platform.Vec2f;
-const Vec2i = platform.Vec2i;
-const vec2i = platform.vec2i;
-const Rect = platform.Rect;
-const Renderer = platform.Renderer;
 const trace = @import("../tracy.zig").trace;
+const canvas = @import("canvas");
+
+const Vec = seizer.math.Vec;
+const Vec2f = Vec(2, f32);
+const vec2f = Vec(2, f32).init;
+const Vec2i = Vec(2, i32);
+const vec2i = Vec(2, i32).init;
+const vec2us = Vec(2, usize).init;
+const Rect = @import("../platform/common/rect.zig").Rect;
 
 const CHUNK_SIZE_LOG2 = 4;
 const CHUNK_SIZE = 1 << CHUNK_SIZE_LOG2;
@@ -43,7 +46,8 @@ pub const World = struct {
     }
 
     pub fn deinit(self: *@This()) void {
-        for (self.chunks.items()) |entry| {
+        var chunks_iter = self.chunks.iterator();
+        while (chunks_iter.next()) |entry| {
             self.alloc.destroy(entry.value);
         }
         self.chunks.deinit();
@@ -60,10 +64,10 @@ pub const World = struct {
         const tracy = trace(@src());
         defer tracy.end();
 
-        const pos_of_chunk = vec2i(pos.x() >> CHUNK_SIZE_LOG2, pos.y() >> CHUNK_SIZE_LOG2);
+        const pos_of_chunk = vec2i(pos.x >> CHUNK_SIZE_LOG2, pos.y >> CHUNK_SIZE_LOG2);
         if (self.get_chunk(pos_of_chunk)) |chunk| {
-            const top_left_of_chunk = vec2i(pos_of_chunk.x() << CHUNK_SIZE_LOG2, pos_of_chunk.y() << CHUNK_SIZE_LOG2);
-            const pos_in_chunk = pos.sub(top_left_of_chunk);
+            const top_left_of_chunk = vec2i(pos_of_chunk.x << CHUNK_SIZE_LOG2, pos_of_chunk.y << CHUNK_SIZE_LOG2);
+            const pos_in_chunk = pos.subv(top_left_of_chunk);
             return chunk.get(pos_in_chunk) orelse unreachable;
         } else {
             return false;
@@ -72,9 +76,9 @@ pub const World = struct {
 
     // Set the cell at the position specified, respecting edge behaviour
     pub fn set(self: *@This(), pos: Vec(2, i32), value: bool) !void {
-        const pos_of_chunk = vec2i(pos.x() >> CHUNK_SIZE_LOG2, pos.y() >> CHUNK_SIZE_LOG2);
-        const top_left_of_chunk = vec2i(pos_of_chunk.x() << CHUNK_SIZE_LOG2, pos_of_chunk.y() << CHUNK_SIZE_LOG2);
-        const pos_in_chunk = pos.sub(top_left_of_chunk);
+        const pos_of_chunk = vec2i(pos.x >> CHUNK_SIZE_LOG2, pos.y >> CHUNK_SIZE_LOG2);
+        const top_left_of_chunk = vec2i(pos_of_chunk.x << CHUNK_SIZE_LOG2, pos_of_chunk.y << CHUNK_SIZE_LOG2);
+        const pos_in_chunk = pos.subv(top_left_of_chunk);
         const chunk_identifer = pack_chunk_identifier(pos_of_chunk);
         if (!self.chunks.contains(chunk_identifer) and !value) {
             // Inactive chunks are set to off by default, so we don't need to allocate a new chunk
@@ -106,7 +110,9 @@ pub const World = struct {
         defer tracy.end();
 
         try self.dead_chunks_idx.resize(0);
-        for (self.chunks.items()) |*chunk_entry| {
+
+        var chunks_iter = self.chunks.iterator();
+        while (chunks_iter.next()) |chunk_entry| {
             const pos = unpack_chunk_identifier(chunk_entry.key);
             chunk_entry.value.step(self, pos);
 
@@ -115,14 +121,14 @@ pub const World = struct {
                 try self.dead_chunks_idx.append(chunk_entry.key);
             }
 
-            if (chunk_entry.value.active_edges & Chunk.EDGE_N != 0) try self.chunks_to_activate.put(pack_chunk_identifier(pos.add(vec2i(0, -1))), .{});
-            if (chunk_entry.value.active_edges & Chunk.EDGE_E != 0) try self.chunks_to_activate.put(pack_chunk_identifier(pos.add(vec2i(1, 0))), .{});
-            if (chunk_entry.value.active_edges & Chunk.EDGE_S != 0) try self.chunks_to_activate.put(pack_chunk_identifier(pos.add(vec2i(0, 1))), .{});
-            if (chunk_entry.value.active_edges & Chunk.EDGE_W != 0) try self.chunks_to_activate.put(pack_chunk_identifier(pos.add(vec2i(-1, 0))), .{});
-            if (chunk_entry.value.active_edges & Chunk.EDGE_NE != 0) try self.chunks_to_activate.put(pack_chunk_identifier(pos.add(vec2i(1, -1))), .{});
-            if (chunk_entry.value.active_edges & Chunk.EDGE_NW != 0) try self.chunks_to_activate.put(pack_chunk_identifier(pos.add(vec2i(-1, -1))), .{});
-            if (chunk_entry.value.active_edges & Chunk.EDGE_SE != 0) try self.chunks_to_activate.put(pack_chunk_identifier(pos.add(vec2i(1, 1))), .{});
-            if (chunk_entry.value.active_edges & Chunk.EDGE_SW != 0) try self.chunks_to_activate.put(pack_chunk_identifier(pos.add(vec2i(-1, 1))), .{});
+            if (chunk_entry.value.active_edges & Chunk.EDGE_N != 0) try self.chunks_to_activate.put(pack_chunk_identifier(pos.add(0, -1)), .{});
+            if (chunk_entry.value.active_edges & Chunk.EDGE_E != 0) try self.chunks_to_activate.put(pack_chunk_identifier(pos.add(1, 0)), .{});
+            if (chunk_entry.value.active_edges & Chunk.EDGE_S != 0) try self.chunks_to_activate.put(pack_chunk_identifier(pos.add(0, 1)), .{});
+            if (chunk_entry.value.active_edges & Chunk.EDGE_W != 0) try self.chunks_to_activate.put(pack_chunk_identifier(pos.add(-1, 0)), .{});
+            if (chunk_entry.value.active_edges & Chunk.EDGE_NE != 0) try self.chunks_to_activate.put(pack_chunk_identifier(pos.add(1, -1)), .{});
+            if (chunk_entry.value.active_edges & Chunk.EDGE_NW != 0) try self.chunks_to_activate.put(pack_chunk_identifier(pos.add(-1, -1)), .{});
+            if (chunk_entry.value.active_edges & Chunk.EDGE_SE != 0) try self.chunks_to_activate.put(pack_chunk_identifier(pos.add(1, 1)), .{});
+            if (chunk_entry.value.active_edges & Chunk.EDGE_SW != 0) try self.chunks_to_activate.put(pack_chunk_identifier(pos.add(-1, 1)), .{});
         }
         for (self.dead_chunks_idx.items) |possibly_dead_chunk| {
             if (!self.chunks_to_activate.contains(possibly_dead_chunk)) {
@@ -130,7 +136,9 @@ pub const World = struct {
                 try self.dead_chunks.append(entry.value);
             }
         }
-        for (self.chunks_to_activate.items()) |to_activate| {
+
+        var chunks_to_activate_iter = self.chunks_to_activate.iterator();
+        while (chunks_to_activate_iter.next()) |to_activate| {
             var gop = try self.chunks.getOrPut(to_activate.key);
             if (!gop.found_existing) {
                 gop.entry.value = self.dead_chunks.popOrNull() orelse try self.alloc.create(Chunk);
@@ -139,7 +147,9 @@ pub const World = struct {
                 gop.entry.value.step(self, unpack_chunk_identifier(gop.entry.key));
             }
         }
-        for (self.chunks.items()) |*chunk_entry| {
+
+        chunks_iter = self.chunks.iterator();
+        while (chunks_iter.next()) |chunk_entry| {
             chunk_entry.value.swap();
         }
         self.generation += 1;
@@ -147,9 +157,9 @@ pub const World = struct {
     }
 
     fn pack_chunk_identifier(pos: Vec(2, i32)) u64 {
-        var chunk_identifer = @intCast(u64, @bitCast(u32, pos.x()));
+        var chunk_identifer = @intCast(u64, @bitCast(u32, pos.x));
         chunk_identifer <<= 32;
-        chunk_identifer |= @bitCast(u32, pos.y());
+        chunk_identifer |= @bitCast(u32, pos.y);
         return chunk_identifer;
     }
 
@@ -160,32 +170,32 @@ pub const World = struct {
         );
     }
 
-    pub fn render(self: @This(), renderer: *Renderer, cell_rect: Rect(i32), grid_offset: Vec2f, scale: f32) void {
-        renderer.set_stroke_style(.{ .Color = .{ .r = 0xCC, .g = 0xCC, .b = 0xCC, .a = 255 } });
+    pub fn render(self: @This(), cell_rect: Rect(i32), grid_offset: Vec2f, scale: f32) void {
+        canvas.set_stroke_style(.{ .Color = .{ .r = 0xCC, .g = 0xCC, .b = 0xCC, .a = 255 } });
         if (scale > 8) {
             // Render grid lines
-            renderer.set_line_cap(.square);
-            renderer.set_line_width(1.5);
+            canvas.set_line_cap(.square);
+            canvas.set_line_width(1.5);
 
             const quarter = scale / 4;
-            renderer.set_line_dash(&[_]f32{ quarter, 2 * quarter, quarter, 0 });
+            canvas.set_line_dash(&[_]f32{ quarter, 2 * quarter, quarter, 0 });
         } else {
-            renderer.set_line_dash(&[_]f32{});
+            canvas.set_line_dash(&[_]f32{});
         }
 
         var top_left_chunk = cell_rect.min;
-        top_left_chunk.v[0] >>= CHUNK_SIZE_LOG2;
-        top_left_chunk.v[1] >>= CHUNK_SIZE_LOG2;
+        top_left_chunk.x >>= CHUNK_SIZE_LOG2;
+        top_left_chunk.y >>= CHUNK_SIZE_LOG2;
         var bottom_right_chunk = cell_rect.max;
-        bottom_right_chunk.v[0] >>= CHUNK_SIZE_LOG2;
-        bottom_right_chunk.v[1] >>= CHUNK_SIZE_LOG2;
+        bottom_right_chunk.x >>= CHUNK_SIZE_LOG2;
+        bottom_right_chunk.y >>= CHUNK_SIZE_LOG2;
 
         var chunk_pos = top_left_chunk;
-        while (chunk_pos.y() <= bottom_right_chunk.y()) : (chunk_pos.v[1] += 1) {
-            chunk_pos.v[0] = top_left_chunk.x();
-            while (chunk_pos.x() <= bottom_right_chunk.x()) : (chunk_pos.v[0] += 1) {
+        while (chunk_pos.y <= bottom_right_chunk.y) : (chunk_pos.y += 1) {
+            chunk_pos.x = top_left_chunk.x;
+            while (chunk_pos.x <= bottom_right_chunk.x) : (chunk_pos.x += 1) {
                 if (self.get_chunk(chunk_pos)) |chunk| {
-                    chunk.render(renderer, chunk_pos, grid_offset, scale);
+                    chunk.render(chunk_pos, grid_offset, scale);
                 }
             }
         }
@@ -232,14 +242,14 @@ pub const Chunk = struct {
     }
 
     pub fn get_self_or_world(self: @This(), world: *const World, chunk_pos: Vec(2, i32), pos_relative_self: Vec(2, i32)) bool {
-        if (pos_relative_self.x() < 0 or pos_relative_self.x() >= CHUNK_SIZE or pos_relative_self.y() < 0 or pos_relative_self.y() >= CHUNK_SIZE) {
+        if (pos_relative_self.x < 0 or pos_relative_self.x >= CHUNK_SIZE or pos_relative_self.y < 0 or pos_relative_self.y >= CHUNK_SIZE) {
             // We need to go to the world to retrieve the cell
             const world_pos = pos_relative_self.add(chunk_pos.scalMul(CHUNK_SIZE));
             return world.get(world_pos);
         } else {
             // We can safely use local data
             const idx_in_chunk = chunk_idx(pos_relative_self) orelse unreachable;
-            return self.cells[self.current_idx()][idx_in_chunk];
+            return self.cells[self.current_idx][idx_in_chunk];
         }
     }
 
@@ -249,9 +259,9 @@ pub const Chunk = struct {
     }
 
     fn chunk_idx(pos: Vec(2, i32)) ?usize {
-        if (pos.x() < 0 or pos.x() >= CHUNK_SIZE or pos.y() < 0 or pos.y() >= CHUNK_SIZE) return null;
+        if (pos.x < 0 or pos.x >= CHUNK_SIZE or pos.y < 0 or pos.y >= CHUNK_SIZE) return null;
         const pos_u = pos.intCast(usize);
-        return pos_u.y() * CHUNK_SIZE + pos_u.x();
+        return pos_u.y * CHUNK_SIZE + pos_u.x;
     }
 
     // Updates the cells_next states
@@ -262,63 +272,63 @@ pub const Chunk = struct {
         var is_an_alive_cell = false;
         self.active_edges = 0;
 
-        const chunk_n = world.get_chunk(chunk_pos.add(vec2i(0, -1)));
-        const chunk_ne = world.get_chunk(chunk_pos.add(vec2i(1, -1)));
-        const chunk_e = world.get_chunk(chunk_pos.add(vec2i(1, 0)));
-        const chunk_se = world.get_chunk(chunk_pos.add(vec2i(1, 1)));
-        const chunk_s = world.get_chunk(chunk_pos.add(vec2i(0, 1)));
-        const chunk_sw = world.get_chunk(chunk_pos.add(vec2i(-1, 1)));
-        const chunk_w = world.get_chunk(chunk_pos.add(vec2i(-1, 0)));
-        const chunk_nw = world.get_chunk(chunk_pos.add(vec2i(-1, -1)));
+        const chunk_n = world.get_chunk(chunk_pos.add(0, -1));
+        const chunk_ne = world.get_chunk(chunk_pos.add(1, -1));
+        const chunk_e = world.get_chunk(chunk_pos.add(1, 0));
+        const chunk_se = world.get_chunk(chunk_pos.add(1, 1));
+        const chunk_s = world.get_chunk(chunk_pos.add(0, 1));
+        const chunk_sw = world.get_chunk(chunk_pos.add(-1, 1));
+        const chunk_w = world.get_chunk(chunk_pos.add(-1, 0));
+        const chunk_nw = world.get_chunk(chunk_pos.add(-1, -1));
 
         var pos = vec2i(0, 0);
-        while (pos.y() < CHUNK_SIZE) : (pos.v[1] += 1) {
-            pos.v[0] = 0;
-            while (pos.x() < CHUNK_SIZE) : (pos.v[0] += 1) {
+        while (pos.y < CHUNK_SIZE) : (pos.y += 1) {
+            pos.x = 0;
+            while (pos.x < CHUNK_SIZE) : (pos.x += 1) {
                 var neighbors: u8 = 0;
 
                 var offset = vec2i(-1, -1);
-                while (offset.v[1] <= 1) : (offset.v[1] += 1) {
-                    offset.v[0] = -1;
-                    while (offset.v[0] <= 1) : (offset.v[0] += 1) {
-                        if (offset.v[0] == 0 and offset.v[1] == 0) continue;
-                        const neighbor_pos = pos.add(offset);
+                while (offset.y <= 1) : (offset.y += 1) {
+                    offset.x = -1;
+                    while (offset.x <= 1) : (offset.x += 1) {
+                        if (offset.x == 0 and offset.y == 0) continue;
+                        const neighbor_pos = pos.addv(offset);
 
-                        if (neighbor_pos.y() < 0) {
-                            if (neighbor_pos.x() < 0) {
+                        if (neighbor_pos.y < 0) {
+                            if (neighbor_pos.x < 0) {
                                 if (chunk_nw) |c| {
-                                    if (c.get(neighbor_pos.add(vec2i(CHUNK_SIZE, CHUNK_SIZE))).?) neighbors += 1;
+                                    if (c.get(neighbor_pos.add(CHUNK_SIZE, CHUNK_SIZE)).?) neighbors += 1;
                                 }
-                            } else if (neighbor_pos.x() >= CHUNK_SIZE) {
+                            } else if (neighbor_pos.x >= CHUNK_SIZE) {
                                 if (chunk_ne) |c| {
-                                    if (c.get(neighbor_pos.add(vec2i(-CHUNK_SIZE, CHUNK_SIZE))).?) neighbors += 1;
+                                    if (c.get(neighbor_pos.add(-CHUNK_SIZE, CHUNK_SIZE)).?) neighbors += 1;
                                 }
                             } else {
                                 if (chunk_n) |c| {
-                                    if (c.get(neighbor_pos.add(vec2i(0, CHUNK_SIZE))).?) neighbors += 1;
+                                    if (c.get(neighbor_pos.add(0, CHUNK_SIZE)).?) neighbors += 1;
                                 }
                             }
-                        } else if (neighbor_pos.y() >= CHUNK_SIZE) {
-                            if (neighbor_pos.x() < 0) {
+                        } else if (neighbor_pos.y >= CHUNK_SIZE) {
+                            if (neighbor_pos.x < 0) {
                                 if (chunk_sw) |c| {
-                                    if (c.get(neighbor_pos.add(vec2i(CHUNK_SIZE, -CHUNK_SIZE))).?) neighbors += 1;
+                                    if (c.get(neighbor_pos.add(CHUNK_SIZE, -CHUNK_SIZE)).?) neighbors += 1;
                                 }
-                            } else if (neighbor_pos.x() >= CHUNK_SIZE) {
+                            } else if (neighbor_pos.x >= CHUNK_SIZE) {
                                 if (chunk_se) |c| {
-                                    if (c.get(neighbor_pos.add(vec2i(-CHUNK_SIZE, -CHUNK_SIZE))).?) neighbors += 1;
+                                    if (c.get(neighbor_pos.add(-CHUNK_SIZE, -CHUNK_SIZE)).?) neighbors += 1;
                                 }
                             } else {
                                 if (chunk_s) |c| {
-                                    if (c.get(neighbor_pos.add(vec2i(0, -CHUNK_SIZE))).?) neighbors += 1;
+                                    if (c.get(neighbor_pos.add(0, -CHUNK_SIZE)).?) neighbors += 1;
                                 }
                             }
-                        } else if (neighbor_pos.x() < 0) {
+                        } else if (neighbor_pos.x < 0) {
                             if (chunk_w) |c| {
-                                if (c.get(neighbor_pos.add(vec2i(CHUNK_SIZE, 0))).?) neighbors += 1;
+                                if (c.get(neighbor_pos.add(CHUNK_SIZE, 0)).?) neighbors += 1;
                             }
-                        } else if (neighbor_pos.x() >= CHUNK_SIZE) {
+                        } else if (neighbor_pos.x >= CHUNK_SIZE) {
                             if (chunk_e) |c| {
-                                if (c.get(neighbor_pos.add(vec2i(-CHUNK_SIZE, 0))).?) neighbors += 1;
+                                if (c.get(neighbor_pos.add(-CHUNK_SIZE, 0)).?) neighbors += 1;
                             }
                         } else if (self.get(neighbor_pos).?) {
                             neighbors += 1;
@@ -340,16 +350,16 @@ pub const Chunk = struct {
                 is_an_alive_cell = is_an_alive_cell or next_value;
 
                 if (!own_value) continue;
-                if (pos.x() == 0) self.active_edges |= EDGE_W;
-                if (pos.x() == CHUNK_SIZE - 1) self.active_edges |= EDGE_E;
+                if (pos.x == 0) self.active_edges |= EDGE_W;
+                if (pos.x == CHUNK_SIZE - 1) self.active_edges |= EDGE_E;
 
-                if (pos.y() == 0) self.active_edges |= EDGE_N;
-                if (pos.y() == CHUNK_SIZE - 1) self.active_edges |= EDGE_S;
+                if (pos.y == 0) self.active_edges |= EDGE_N;
+                if (pos.y == CHUNK_SIZE - 1) self.active_edges |= EDGE_S;
 
-                if (pos.y() == 0 and pos.x() == 0) self.active_edges |= EDGE_NW;
-                if (pos.y() == 0 and pos.x() == CHUNK_SIZE - 1) self.active_edges |= EDGE_NE;
-                if (pos.y() == CHUNK_SIZE - 1 and pos.x() == 0) self.active_edges |= EDGE_SW;
-                if (pos.y() == CHUNK_SIZE - 1 and pos.x() == CHUNK_SIZE - 1) self.active_edges |= EDGE_SE;
+                if (pos.y == 0 and pos.x == 0) self.active_edges |= EDGE_NW;
+                if (pos.y == 0 and pos.x == CHUNK_SIZE - 1) self.active_edges |= EDGE_NE;
+                if (pos.y == CHUNK_SIZE - 1 and pos.x == 0) self.active_edges |= EDGE_SW;
+                if (pos.y == CHUNK_SIZE - 1 and pos.x == CHUNK_SIZE - 1) self.active_edges |= EDGE_SE;
             }
         }
 
@@ -360,60 +370,60 @@ pub const Chunk = struct {
         self.current = !self.current;
     }
 
-    pub fn render(self: @This(), renderer: *Renderer, chunk_pos: Vec2i, grid_offset: Vec2f, scale: f32) void {
-        const chunk_offset = chunk_pos.scalMul(CHUNK_SIZE);
+    pub fn render(self: @This(), chunk_pos: Vec2i, grid_offset: Vec2f, scale: f32) void {
+        const chunk_offset = chunk_pos.scale(CHUNK_SIZE);
         if (scale > 8) {
             // Render grid lines
-            renderer.set_line_cap(.square);
-            renderer.set_line_width(1.5);
+            canvas.set_line_cap(.square);
+            canvas.set_line_width(1.5);
 
             const quarter = scale / 4;
-            renderer.set_line_dash(&[_]f32{ quarter, 2 * quarter, quarter, 0 });
+            canvas.set_line_dash(&[_]f32{ quarter, 2 * quarter, quarter, 0 });
 
-            renderer.begin_path();
+            canvas.begin_path();
             var y: i32 = 0;
             while (y <= CHUNK_SIZE) : (y += 1) {
-                renderer.move_to(
-                    grid_offset.x() + @intToFloat(f32, chunk_offset.x()) * scale,
-                    grid_offset.y() + @intToFloat(f32, chunk_offset.y() + y) * scale,
+                canvas.move_to(
+                    grid_offset.x + @intToFloat(f32, chunk_offset.x) * scale,
+                    grid_offset.y + @intToFloat(f32, chunk_offset.y + y) * scale,
                 );
-                renderer.line_to(
-                    grid_offset.x() + @intToFloat(f32, chunk_offset.x() + CHUNK_SIZE) * scale,
-                    grid_offset.y() + @intToFloat(f32, chunk_offset.y() + y) * scale,
+                canvas.line_to(
+                    grid_offset.x + @intToFloat(f32, chunk_offset.x + CHUNK_SIZE) * scale,
+                    grid_offset.y + @intToFloat(f32, chunk_offset.y + y) * scale,
                 );
             }
             var x: i32 = 0;
             while (x <= CHUNK_SIZE) : (x += 1) {
-                renderer.move_to(
-                    grid_offset.x() + @intToFloat(f32, chunk_offset.x() + x) * scale,
-                    grid_offset.y() + @intToFloat(f32, chunk_offset.y()) * scale,
+                canvas.move_to(
+                    grid_offset.x + @intToFloat(f32, chunk_offset.x + x) * scale,
+                    grid_offset.y + @intToFloat(f32, chunk_offset.y) * scale,
                 );
-                renderer.line_to(
-                    grid_offset.x() + @intToFloat(f32, chunk_offset.x() + x) * scale,
-                    grid_offset.y() + @intToFloat(f32, chunk_offset.y() + CHUNK_SIZE) * scale,
+                canvas.line_to(
+                    grid_offset.x + @intToFloat(f32, chunk_offset.x + x) * scale,
+                    grid_offset.y + @intToFloat(f32, chunk_offset.y + CHUNK_SIZE) * scale,
                 );
             }
-            renderer.stroke();
+            canvas.stroke();
         } else {
             // Draw rect around chunk
-            renderer.stroke_rect(
-                grid_offset.x() + @intToFloat(f32, chunk_offset.x()) * scale,
-                grid_offset.y() + @intToFloat(f32, chunk_offset.y()) * scale,
+            canvas.stroke_rect(
+                grid_offset.x + @intToFloat(f32, chunk_offset.x) * scale,
+                grid_offset.y + @intToFloat(f32, chunk_offset.y) * scale,
                 CHUNK_SIZE * scale,
                 CHUNK_SIZE * scale,
             );
         }
 
-        renderer.set_fill_style(.{ .Color = .{ .r = 100, .g = 100, .b = 100, .a = 255 } });
+        canvas.set_fill_style(.{ .Color = .{ .r = 100, .g = 100, .b = 100, .a = 255 } });
 
         var pos = vec2i(0, 0);
-        while (pos.y() < CHUNK_SIZE) : (pos.v[1] += 1) {
-            pos.v[0] = 0;
-            while (pos.x() < CHUNK_SIZE) : (pos.v[0] += 1) {
+        while (pos.y < CHUNK_SIZE) : (pos.y += 1) {
+            pos.x = 0;
+            while (pos.x < CHUNK_SIZE) : (pos.x += 1) {
                 if (self.get(pos) orelse false) {
-                    renderer.fill_rect(
-                        grid_offset.x() + @intToFloat(f32, chunk_offset.x() + pos.x()) * scale,
-                        grid_offset.y() + @intToFloat(f32, chunk_offset.y() + pos.y()) * scale,
+                    canvas.fill_rect(
+                        grid_offset.x + @intToFloat(f32, chunk_offset.x + pos.x) * scale,
+                        grid_offset.y + @intToFloat(f32, chunk_offset.y + pos.y) * scale,
                         scale,
                         scale,
                     );

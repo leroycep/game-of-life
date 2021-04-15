@@ -1,10 +1,10 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 const GridOfLife = @import("./grid_of_life.zig").GridOfLife;
-const platform = @import("../platform.zig");
-const Vec = platform.Vec;
-const vec2us = platform.vec2us;
-const vec2is = platform.vec2is;
+const seizer = @import("seizer");
+const Vec = seizer.math.Vec;
+const vec2us = Vec(2, usize).init;
+const vec2is = Vec(2, isize).init;
 
 pub const Pattern = struct {
     name: []const u8,
@@ -12,7 +12,7 @@ pub const Pattern = struct {
     cells: []const u1,
 
     pub fn check(self: @This()) !@This() {
-        if (self.size.x() * self.size.y() != self.cells.len) {
+        if (self.size.x * self.size.y != self.cells.len) {
             return error.PatternSizeInvalid;
         }
         return self;

@@ -1,13 +1,16 @@
 const std = @import("std");
-const platform = @import("../platform.zig");
+const seizer = @import("seizer");
 const Allocator = std.mem.Allocator;
-const Vec = platform.Vec;
-const Vec2i = platform.Vec2i;
-const vec2us = platform.vec2us;
-const vec2is = platform.vec2is;
-const vec2i = platform.vec2i;
-const Rect = platform.Rect;
 const World = @import("./world.zig").World;
+
+const Vec = seizer.math.Vec;
+const Vec2f = Vec(2, f32);
+const vec2f = Vec(2, f32).init;
+const Vec2i = Vec(2, i32);
+const vec2i = Vec(2, i32).init;
+const vec2us = Vec(2, usize).init;
+const vec2is = Vec(2, isize).init;
+const Rect = @import("../platform/common/rect.zig").Rect;
 
 pub const patterns = @import("./patterns.zig");
 
@@ -29,9 +32,9 @@ pub const GridOfLife = struct {
     generation: usize,
 
     pub fn init(alloc: *std.mem.Allocator, options: GridOptions) !@This() {
-        const cells = try alloc.alloc(bool, options.size.x() * options.size.y());
+        const cells = try alloc.alloc(bool, options.size.x * options.size.y);
         errdefer alloc.free(cells);
-        const cells_next = try alloc.alloc(bool, options.size.x() * options.size.y());
+        const cells_next = try alloc.alloc(bool, options.size.x * options.size.y);
         errdefer alloc.free(cells_next);
         var self = @This(){
             .options = options,
@@ -74,14 +77,14 @@ pub const GridOfLife = struct {
     }
 
     pub fn idx(self: @This(), pos: Vec(2, isize)) ?usize {
-        if (pos.x() < 0 or pos.x() >= self.options.size.x() or pos.y() < 0 or pos.y() >= self.options.size.y()) return null;
+        if (pos.x < 0 or pos.x >= self.options.size.x or pos.y < 0 or pos.y >= self.options.size.y) return null;
         const pos_u = pos.intCast(usize);
-        return pos_u.y() * self.options.size.x() + pos_u.x();
+        return pos_u.y * self.options.size.x + pos_u.x;
     }
 
     pub fn idx_wrapping(self: @This(), pos: Vec(2, isize)) usize {
         const size_i = self.options.size.intCast(isize);
-        return @intCast(usize, @mod(pos.y(), size_i.y()) * size_i.x() + @mod(pos.x(), size_i.x()));
+        return @intCast(usize, @mod(pos.y, size_i.y) * size_i.x + @mod(pos.x, size_i.x));
     }
 
     fn swap_cells_buffer(self: *@This()) void {
@@ -92,9 +95,9 @@ pub const GridOfLife = struct {
 
     pub fn step(self: *@This()) void {
         var y: isize = 0;
-        while (y < self.options.size.y()) : (y += 1) {
+        while (y < self.options.size.y) : (y += 1) {
             var x: isize = 0;
-            while (x < self.options.size.x()) : (x += 1) {
+            while (x < self.options.size.x) : (x += 1) {
                 const pos = Vec(2, isize).init(x, y);
                 var neighbors: u8 = 0;
 
@@ -132,17 +135,17 @@ pub const GridOfLife = struct {
 
         var src_pos = src_rect.min;
         var dest_pos = vec2is(0, 0);
-        while (src_pos.y() < src_rect.max.y()) {
-            src_pos.v[0] = src_rect.min.x();
-            dest_pos.v[0] = 0;
-            while (src_pos.x() < src_rect.max.x()) {
+        while (src_pos.y < src_rect.max.y) {
+            src_pos.x = src_rect.min.x;
+            dest_pos.x = 0;
+            while (src_pos.x < src_rect.max.x) {
                 self.set(dest_pos, world.get(src_pos));
 
-                src_pos.v[0] += 1;
-                dest_pos.v[0] += 1;
+                src_pos.x += 1;
+                dest_pos.x += 1;
             }
-            src_pos.v[1] += 1;
-            dest_pos.v[1] += 1;
+            src_pos.y += 1;
+            dest_pos.y += 1;
         }
 
         return self;
@@ -150,29 +153,29 @@ pub const GridOfLife = struct {
 
     pub fn paste(self: @This(), world: *World, world_offset: Vec2i) !void {
         var pos = vec2i(0, 0);
-        while (pos.y() < @intCast(i32, self.options.size.y())) : (pos.v[1] += 1) {
-            pos.v[0] = 0;
-            while (pos.x() < @intCast(i32, self.options.size.x())) : (pos.v[0] += 1) {
-                try world.set(world_offset.add(pos), self.get(pos.intCast(isize)));
+        while (pos.y < @intCast(i32, self.options.size.y)) : (pos.y += 1) {
+            pos.x = 0;
+            while (pos.x < @intCast(i32, self.options.size.x)) : (pos.x += 1) {
+                try world.set(world_offset.addv(pos), self.get(pos.intCast(isize)));
             }
         }
     }
 
     pub fn rotate(self: *@This()) void {
-        const center = self.options.size.scalDiv(2).intCast(isize);
-        const new_size = vec2us(self.options.size.y(), self.options.size.x());
-        const new_center = vec2is(@intCast(isize, new_size.x() - 1), 0).add(center.rot90());
+        const center = self.options.size.scaleDiv(2).intCast(isize);
+        const new_size = vec2us(self.options.size.y, self.options.size.x);
+        const new_center = vec2is(@intCast(isize, new_size.x - 1), 0).addv(center.orthogonal());
         var pos = vec2is(0, 0);
-        while (pos.y() < self.options.size.y()) : (pos.v[1] += 1) {
-            pos.v[0] = 0;
-            while (pos.x() < self.options.size.x()) : (pos.v[0] += 1) {
-                const rot_pos = pos.sub(center).rot90().add(new_center);
+        while (pos.y < self.options.size.y) : (pos.y += 1) {
+            pos.x = 0;
+            while (pos.x < self.options.size.x) : (pos.x += 1) {
+                const rot_pos = pos.subv(center).orthogonal().addv(new_center);
                 const rot_pos_u = rot_pos.intCast(usize);
-                const rot_idx = rot_pos_u.y() * new_size.x() + rot_pos_u.x();
+                const rot_idx = rot_pos_u.y * new_size.x + rot_pos_u.x;
 
                 if (rot_idx >= self.cells_next.len) {
-                    platform.warn("rot_idx out of range: {} -> {} {}", .{ pos, rot_pos, rot_idx });
-                    platform.warn("centers: {} -> {}", .{ center, new_center });
+                    std.log.warn("rot_idx out of range: {} -> {} {}", .{ pos, rot_pos, rot_idx });
+                    std.log.warn("centers: {} -> {}", .{ center, new_center });
                 }
 
                 self.cells_next[rot_idx] = self.get(pos);

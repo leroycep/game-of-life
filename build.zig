@@ -3,8 +3,15 @@ const fs = std.fs;
 const Builder = std.build.Builder;
 const sep_str = std.fs.path.sep_str;
 const Cpu = std.Target.Cpu;
+const deps = @import("./deps.zig");
 
 const SITE_DIR = "www";
+
+const CANVAS = std.build.Pkg{
+    .name = "canvas",
+    .path = "canvas/canvas.zig",
+    .dependencies = &.{deps.pkgs.seizer},
+};
 
 pub fn build(b: *Builder) void {
     const target = b.standardTargetOptions(.{});
@@ -21,24 +28,24 @@ pub fn build(b: *Builder) void {
         tests.linkLibC();
     }
 
-    const native = b.addExecutable("game-of-life", "src/main_native.zig");
-    native.linkSystemLibrary("SDL2");
-    native.linkSystemLibrary("pathfinder");
-    native.linkLibC();
-    native.setTarget(target);
-    native.setBuildMode(mode);
-    native.install();
-    b.step("native", "Build native binary").dependOn(&native.step);
+    // const native = b.addExecutable("game-of-life", "src/main_native.zig");
+    // native.linkSystemLibrary("SDL2");
+    // native.linkSystemLibrary("pathfinder");
+    // native.linkLibC();
+    // native.setTarget(target);
+    // native.setBuildMode(mode);
+    // native.install();
+    // b.step("native", "Build native binary").dependOn(&native.step);
+    // b.step("run", "Run the native binary").dependOn(&native.run().step);
 
-    b.step("run", "Run the native binary").dependOn(&native.run().step);
+    const wasm = b.addStaticLibrary("game-of-life-web", "src/main.zig");
+    wasm.addPackage(deps.pkgs.seizer);
 
-    const wasm = b.addStaticLibrary("game-of-life-web", "src/main_web.zig");
-    wasm.addPackage(.{
-        .name = "zee_alloc",
-        .path = "./zee_alloc/src/main.zig",
-    });
+    // Add canvas dep
     wasm.step.dependOn(&b.addExecutable("canvas_generate", "tools/canvas_generate.zig").run().step);
-    const wasmOutDir = b.fmt("{}" ++ sep_str ++ SITE_DIR, .{b.install_prefix});
+    wasm.addPackage(CANVAS);
+
+    const wasmOutDir = b.fmt("{s}" ++ sep_str ++ SITE_DIR, .{b.install_prefix});
     wasm.setOutputDir(wasmOutDir);
     wasm.setBuildMode(b.standardReleaseOptions());
     wasm.setTarget(.{
@@ -47,23 +54,18 @@ pub fn build(b: *Builder) void {
     });
     wasm.addBuildOption(bool, "enable_tracy", false);
 
-    const htmlInstall = b.addInstallFile("./index.html", SITE_DIR ++ sep_str ++ "index.html");
-    const cssInstall = b.addInstallFile("./index.css", SITE_DIR ++ sep_str ++ "index.css");
-    const jsInstall = b.addInstallDirectory(.{
-        .source_dir = "js",
+    const staticFilesInstall = b.addInstallDirectory(.{
+        .source_dir = "static",
         .install_dir = .Prefix,
-        .install_subdir = SITE_DIR ++ sep_str ++ "js",
+        .install_subdir = "www",
     });
-
-    wasm.step.dependOn(&htmlInstall.step);
-    wasm.step.dependOn(&cssInstall.step);
-    wasm.step.dependOn(&jsInstall.step);
+    wasm.step.dependOn(&staticFilesInstall.step);
 
     b.step("wasm", "Build WASM binary").dependOn(&wasm.step);
     b.step("test", "Run tests").dependOn(&tests.step);
 
     const all = b.step("all", "Build all binaries");
-    all.dependOn(&native.step);
+    //all.dependOn(&native.step);
     all.dependOn(&wasm.step);
     all.dependOn(&tests.step);
 }

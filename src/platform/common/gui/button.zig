@@ -1,15 +1,16 @@
 const std = @import("std");
-const platform = @import("../../../platform.zig");
+const seizer = @import("seizer");
+const canvas = @import("canvas");
 
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
-const Element = platform.gui.Element;
-const Gui = platform.gui.Gui;
-const Label = platform.gui.Label;
-const Event = platform.gui.Event;
-const Color = platform.Color;
-const Vec2f = platform.Vec2f;
-const Rect = platform.Rect;
+const Element = @import("./gui.zig").Element;
+const Gui = @import("./gui.zig").Gui;
+const Label = @import("./gui.zig").Label;
+const Event = @import("./gui.zig").Event;
+const Color = canvas.Color;
+const Vec2f = seizer.math.Vec(2, f32);
+const Rect = @import("../rect.zig").Rect;
 const FillStyle = platform.renderer.FillStyle;
 
 pub const Button = struct {
@@ -73,11 +74,11 @@ pub const Button = struct {
         const self = @fieldParentPtr(@This(), "element", element);
 
         if (self.mouse_over) {
-            gui.renderer.set_fill_style(.{ .Color = Color.from_u32(0x777777FF) });
+            canvas.set_fill_style(.{ .Color = Color.from_u32(0x777777FF) });
         } else {
-            gui.renderer.set_fill_style(.{ .Color = Color.from_u32(0xBBBBBBFF) });
+            canvas.set_fill_style(.{ .Color = Color.from_u32(0xBBBBBBFF) });
         }
-        gui.renderer.fill_rect(rect.min.x(), rect.min.y(), rect.size().x(), rect.size().y());
+        canvas.fill_rect(rect.min.x, rect.min.y, rect.size().x, rect.size().y);
 
         self.label.render(gui, rect, alpha);
     }

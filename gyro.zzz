@@ -1,0 +1,8 @@
+deps:
+  seizer:
+    src:
+      github:
+        user: leroycep
+        repo: seizer
+        ref: controllers
+    root: src/seizer.zig

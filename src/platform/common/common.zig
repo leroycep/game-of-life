@@ -1,11 +1,6 @@
 pub const renderer = @import("./renderer.zig");
 pub const gui = @import("./gui/gui.zig");
 
-pub const Vec = @import("./vec.zig").Vec;
-pub const Vec2i = Vec(2, i32);
-pub const Vec2u = Vec(2, u32);
-pub const Vec2f = Vec(2, f32);
-
 pub const Rect = @import("./rect.zig").Rect;
 
 pub fn vec2i(x: i32, y: i32) Vec(2, i32) {

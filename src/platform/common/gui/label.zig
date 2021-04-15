@@ -1,15 +1,16 @@
 const std = @import("std");
-const platform = @import("../../../platform.zig");
+const seizer = @import("seizer");
+const canvas = @import("canvas");
 
 const Allocator = std.mem.Allocator;
-const Element = platform.gui.Element;
-const Gui = platform.gui.Gui;
-const Event = platform.gui.Event;
-const Vec2f = platform.Vec2f;
-const Rect = platform.Rect;
-const FillStyle = platform.renderer.FillStyle;
-const TextAlign = platform.renderer.TextAlign;
-const TextBaseline = platform.renderer.TextBaseline;
+const Element = @import("./gui.zig").Element;
+const Gui = @import("./gui.zig").Gui;
+const Event = @import("./gui.zig").Event;
+const Vec2f = seizer.math.Vec(2, f32);
+const Rect = @import("../rect.zig").Rect;
+const FillStyle = canvas.FillStyle;
+const TextAlign = canvas.TextAlign;
+const TextBaseline = canvas.TextBaseline;
 
 pub const Label = struct {
     element: Element,
@@ -46,12 +47,18 @@ pub const Label = struct {
         return false;
     }
 
+    var updates: u32 = 0;
     pub fn minimumSize(element: *Element, gui: *Gui) Vec2f {
         const self = @fieldParentPtr(@This(), "element", element);
 
-        gui.renderer.set_text_align(self.text_align);
-        gui.renderer.set_text_baseline(self.text_baseline);
-        const metrics = gui.renderer.measure_text(self.text);
+        canvas.set_text_align(self.text_align);
+        canvas.set_text_baseline(self.text_baseline);
+        const metrics = canvas.measure_text(self.text);
+        
+        if (updates % 39 == 0) {
+            std.log.debug("metrics = {}", .{ metrics });
+        }
+        updates +%= 1;
 
         return Vec2f.init(@floatCast(f32, metrics.width), @floatCast(f32, metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent));
     }
@@ -60,20 +67,20 @@ pub const Label = struct {
         const self = @fieldParentPtr(@This(), "element", element);
 
         const pos_x = switch (self.text_align) {
-            .Left => rect.min.x(),
-            .Center => rect.center().x(),
-            .Right => rect.max.x(),
+            .Left => rect.min.x,
+            .Center => rect.center().x,
+            .Right => rect.max.x,
         };
 
         const pos_y = switch (self.text_baseline) {
-            .Top => rect.min.y(),
-            .Middle => rect.center().y(),
-            .Bottom => rect.max.y(),
+            .Top => rect.min.y,
+            .Middle => rect.center().y,
+            .Bottom => rect.max.y,
         };
 
-        gui.renderer.set_fill_style(self.fill_style);
-        gui.renderer.set_text_align(self.text_align);
-        gui.renderer.set_text_baseline(self.text_baseline);
-        gui.renderer.fill_text(self.text, pos_x, pos_y);
+        canvas.set_fill_style(self.fill_style);
+        canvas.set_text_align(self.text_align);
+        canvas.set_text_baseline(self.text_baseline);
+        canvas.fill_text(self.text, pos_x, pos_y);
     }
 };

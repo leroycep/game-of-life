@@ -1,5 +1,6 @@
 const std = @import("std");
 const platform = @import("../../../platform.zig");
+const seizer = @import("seizer");
 
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
@@ -7,7 +8,7 @@ const Element = platform.gui.Element;
 const Gui = platform.gui.Gui;
 const Event = platform.gui.Event;
 const Rect = platform.Rect;
-const Vec2f = platform.Vec2f;
+const Vec2f = seizer.math.Vec(2, f32);
 const FillStyle = platform.renderer.FillStyle;
 const TextAlign = platform.renderer.TextAlign;
 const TextBaseline = platform.renderer.TextBaseline;
@@ -142,8 +143,8 @@ pub const Flexbox = struct {
 
         for (self.children.items) |child| {
             const child_size = child.element.minimumSize(gui);
-            size.v[main_axis] += child_size.v[main_axis];
-            size.v[cross_axis] = std.math.max(size.v[cross_axis], child_size.v[cross_axis]);
+            size.getFieldMut(main_axis).* += child_size.getField(main_axis);
+            size.getFieldMut(cross_axis).* = std.math.max(size.getField(cross_axis), child_size.getField(cross_axis));
         }
 
         return size;
@@ -166,11 +167,11 @@ pub const Flexbox = struct {
 
         for (self.children.items) |*child| {
             child.min_size = child.element.minimumSize(gui);
-            main_space_used += child.min_size.v[main_axis];
-            cross_min_width = std.math.max(cross_min_width, child.min_size.v[cross_axis]);
+            main_space_used += child.min_size.getField(main_axis);
+            cross_min_width = std.math.max(cross_min_width, child.min_size.getField(cross_axis));
         }
 
-        const main_space_total = rect.size().v[main_axis];
+        const main_space_total = rect.size().getField(main_axis);
         const num_items = @intToFloat(f32, self.children.items.len);
 
         const space_before: f32 = switch (self.justification) {
@@ -187,22 +188,22 @@ pub const Flexbox = struct {
         };
 
         var pos = rect.min;
-        pos.v[main_axis] += space_before;
+        pos.getFieldMut(main_axis).* += space_before;
 
-        pos.v[cross_axis] = switch (self.cross_align) {
-            .Start => pos.v[cross_axis],
-            .Center => rect.center().v[cross_axis] - cross_min_width / 2,
-            .End => rect.max.v[cross_axis] - cross_min_width,
+        pos.getFieldMut(cross_axis).* = switch (self.cross_align) {
+            .Start => pos.getField(cross_axis),
+            .Center => rect.center().getField(cross_axis) - cross_min_width / 2,
+            .End => rect.max.getField(cross_axis) - cross_min_width,
         };
 
         for (self.children.items) |*child| {
             var size = child.min_size;
-            size.v[cross_axis] = cross_min_width;
+            size.getFieldMut(cross_axis).* = cross_min_width;
 
             child.rect = Rect(f32).initPosAndSize(pos, size);
             child.element.render(gui, child.rect, alpha);
 
-            pos.v[main_axis] += child.min_size.v[main_axis] + space_between;
+            pos.getFieldMut(main_axis).* += child.min_size.getField(main_axis) + space_between;
         }
     }
 };

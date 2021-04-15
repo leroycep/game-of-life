@@ -1,14 +1,14 @@
 const std = @import("std");
-const platform = @import("../../../platform.zig");
+const seizer = @import("seizer");
 
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
-const Element = platform.gui.Element;
-const Gui = platform.gui.Gui;
-const Event = platform.gui.Event;
-const Rect = platform.Rect;
-const Vec2f = platform.Vec2f;
-const vec2f = platform.vec2f;
+const Element = @import("./gui.zig").Element;
+const Gui = @import("./gui.zig").Gui;
+const Event = @import("./gui.zig").Event;
+const Rect = @import("../rect.zig").Rect;
+const Vec2f = seizer.math.Vec(2, f32);
+const vec2f = seizer.math.Vec(2, f32).init;
 const FillStyle = platform.renderer.FillStyle;
 const TextAlign = platform.renderer.TextAlign;
 const TextBaseline = platform.renderer.TextBaseline;
@@ -192,24 +192,24 @@ pub const Grid = struct {
                 if (child.track_span != null) continue;
                 var track_span: Rect(usize) = undefined;
 
-                track_span.min.v[0] = x;
+                track_span.min.x = x;
                 while (x + 1 < areas.width and areas.get(x + 1, y).? == area_id) {
                     x += 1;
                 }
-                track_span.max.v[0] = x;
+                track_span.max.x = x;
 
-                track_span.min.v[1] = y;
+                track_span.min.y = y;
                 var j = y;
                 expand_down: while (j + 1 < areas.height) {
-                    var i = track_span.min.x();
-                    while (i <= track_span.max.x()) : (i += 1) {
+                    var i = track_span.min.x;
+                    while (i <= track_span.max.x) : (i += 1) {
                         if (areas.get(i, j + 1) != area_id) {
                             break :expand_down;
                         }
                     }
                     j += 1;
                 }
-                track_span.max.v[1] = j;
+                track_span.max.y = j;
 
                 child.track_span = track_span;
             }
@@ -220,9 +220,9 @@ pub const Grid = struct {
 
             for (self.children.items) |*child| {
                 child.min_size = child.element.minimumSize(gui);
-                if (child.track_span.?.size().x() == 0) {
-                    const min_width = &min_single_widths[child.track_span.?.min.x()];
-                    min_width.* = std.math.max(min_width.*, child.min_size.x());
+                if (child.track_span.?.size().x == 0) {
+                    const min_width = &min_single_widths[child.track_span.?.min.x];
+                    min_width.* = std.math.max(min_width.*, child.min_size.x);
                 }
             }
 
@@ -247,7 +247,7 @@ pub const Grid = struct {
                 }
             }
 
-            const space_for_fractionals: f32 = rect.size().x() - space_used_by_fixed;
+            const space_for_fractionals: f32 = rect.size().x - space_used_by_fixed;
             const pixels_per_fractional: f32 = space_for_fractionals / @intToFloat(f32, fr_units_total);
             for (self.layout.row.?) |col, idx| {
                 switch (col) {
@@ -271,16 +271,16 @@ pub const Grid = struct {
                 track_x[widths.len] = x_pos;
             }
 
-            const height_per_component = rect.size().y() / @intToFloat(f32, areas.height);
+            const height_per_component = rect.size().y / @intToFloat(f32, areas.height);
             for (self.children.items) |*child| {
                 child.rect = Rect(f32){
                     .min = vec2f(
-                        rect.min.x() + track_x[child.track_span.?.min.x()],
-                        rect.min.y() + @intToFloat(f32, child.track_span.?.min.y()) * height_per_component,
+                        rect.min.x + track_x[child.track_span.?.min.x],
+                        rect.min.y + @intToFloat(f32, child.track_span.?.min.y) * height_per_component,
                     ),
                     .max = vec2f(
-                        rect.min.x() + track_x[child.track_span.?.max.x() + 1],
-                        rect.min.y() + @intToFloat(f32, child.track_span.?.max.y() + 1) * height_per_component,
+                        rect.min.x + track_x[child.track_span.?.max.x + 1],
+                        rect.min.y + @intToFloat(f32, child.track_span.?.max.y + 1) * height_per_component,
                     ),
                 };
 

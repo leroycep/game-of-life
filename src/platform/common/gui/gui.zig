@@ -1,13 +1,12 @@
 const std = @import("std");
-const platform = @import("../../../platform.zig");
+const seizer = @import("seizer");
+const canvas = @import("canvas");
 
 const Allocator = std.mem.Allocator;
-const Context = platform.Context;
-const Renderer = platform.Renderer;
-const Keycode = platform.Keycode;
-const Rect = platform.Rect;
-const Vec2f = platform.Vec2f;
-const vec2f = platform.vec2f;
+const Keycode = seizer.event.Keycode;
+const Rect = @import("../rect.zig").Rect;
+const Vec2f = seizer.math.Vec2f;
+const vec2f = seizer.math.vec2f;
 
 pub const Label = @import("./label.zig").Label;
 pub const Flexbox = @import("./flexbox.zig").Flexbox;
@@ -21,7 +20,6 @@ pub const Props = usize;
 
 pub const Gui = struct {
     alloc: *Allocator,
-    renderer: Renderer,
     root: ?*Element,
     cursor_pos: Vec2f,
     focused: ?*Element,
@@ -29,7 +27,6 @@ pub const Gui = struct {
     pub fn init(alloc: *Allocator) @This() {
         return @This(){
             .alloc = alloc,
-            .renderer = undefined,
             .root = null,
             .cursor_pos = vec2f(0, 0),
             .focused = null,
@@ -42,7 +39,7 @@ pub const Gui = struct {
         }
     }
 
-    pub fn onEvent(self: *@This(), context: *Context, event: platform.Event) bool {
+    pub fn onEvent(self: *@This(), event: seizer.event.Event) bool {
         const root = self.root orelse return false;
         switch (event) {
             .MouseMotion => |ev| {
@@ -70,10 +67,9 @@ pub const Gui = struct {
         }
     }
 
-    pub fn render(self: *@This(), context: *Context, alpha: f64) void {
-        self.renderer = context.renderer;
+    pub fn render(self: *@This(), alpha: f64) void {
         if (self.root) |root| {
-            const screen_size = context.getScreenSize().intToFloat(f32);
+            const screen_size = seizer.getScreenSize().intToFloat(f32);
             const rect = Rect(f32).initPosAndSize(vec2f(0, 0), screen_size);
             root.render(self, rect, alpha);
         }
@@ -100,20 +96,22 @@ pub const Element = struct {
     pub fn minimumSize(self: *@This(), gui: *Gui) Vec2f {
         const size = self.minimumSizeFn(self, gui);
 
-        return size.add(vec2f(
+        return size.add(
             self.margin.left + self.margin.right,
             self.margin.top + self.margin.bottom,
-        ));
+        );
     }
 
     pub fn render(self: *@This(), gui: *Gui, rect: Rect(f32), alpha: f64) void {
-        const min = rect.min.add(vec2f(self.margin.left, self.margin.top));
-        const max = rect.max.sub(vec2f(self.margin.right, self.margin.bottom));
+        const min = rect.min.addv(vec2f(self.margin.left, self.margin.top));
+        const max = rect.max.subv(vec2f(self.margin.right, self.margin.bottom));
 
-        if (min.x() > max.x() or min.y() > max.y()) {
+        if (min.x > max.x or min.y > max.y) {
             // TODO: Log something?
             return;
         }
+
+        //canvas.stroke_rect(min.x, min.y, max.x - min.x, max.y - min.y);
 
         self.renderFn(self, gui, Rect(f32).initMinAndMax(min, max), alpha);
     }
