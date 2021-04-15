@@ -45,64 +45,64 @@ export default function getWebGLEnv(canvas_element, getInstance) {
     const cursorStyleMap = ["default", "move", "grabbing"];
     return {
         getScreenW() {
-            return canvas_element.getBoundingClientRect().width;
+            return element.getBoundingClientRect().width;
         },
         getScreenH() {
-            return canvas_element.getBoundingClientRect().height;
+            return element.getBoundingClientRect().height;
         },
-        canvas_setCursorStyle(style) {
-            canvas_element.style.cursor = cursorStyleMap[style];
+        setCursorStyle(style) {
+            element.style.cursor = cursorStyleMap[style];
         },
-        canvas_clearRect(x, y, width, height) {
+        clearRect(x, y, width, height) {
             canvas.clearRect(x,y,width,height);
         },
-        canvas_fillRect(x, y, width, height) {
+        fillRect(x, y, width, height) {
             canvas.fillRect(x,y,width,height);
         },
-        canvas_strokeRect(x, y, width, height) {
+        strokeRect(x, y, width, height) {
             canvas.strokeRect(x,y,width,height);
         },
-        canvas_setFillStyle_rgba(r, g, b, a) {
+        setFillStyle_rgba(r, g, b, a) {
             // make alpha work; apparently it only accepts floats
             const alpha = a / 255.0;
             canvas.fillStyle = `rgba(${r},${g},${b},${alpha})`;
         },
-        canvas_setStrokeStyle_rgba(r, g, b, a) {
+        setStrokeStyle_rgba(r, g, b, a) {
             canvas.strokeStyle = `rgba(${r},${g},${b},${a})`;
         },
-        canvas_setTextAlign(text_align) {
+        setTextAlign(text_align) {
             canvas.textAlign = textAlignMap[text_align];
         },
-        canvas_setTextBaseline(text_baseline) {
+        setTextBaseline(text_baseline) {
             canvas.textBaseline = textBaselineMap[text_baseline];
         },
-        canvas_setLineCap(line_cap) {
+        setLineCap(line_cap) {
             canvas.lineCap = lineCapMap[line_cap];
         },
-        canvas_setLineWidth(width) {
+        setLineWidth(width) {
             canvas.lineWidth = width;
         },
-        canvas_setLineDash_(segments_ptr, segments_len) {
+        setLineDash_(segments_ptr, segments_len) {
             const segments = readF32Array(segments_ptr, segments_len);
             canvas.setLineDash(segments);
         },
-        canvas_fillText_(text_ptr, text_len, x, y) {
+        fillText_(text_ptr, text_len, x, y) {
             const text = readCharStr(text_ptr, text_len);
             canvas.fillText(text, x, y);
         },
-        canvas_moveTo(x, y) {
+        moveTo(x, y) {
             canvas.moveTo(x, y);
         },
-        canvas_lineTo(x, y) {
+        lineTo(x, y) {
             canvas.lineTo(x, y);
         },
-        canvas_beginPath() {
+        beginPath() {
             canvas.beginPath();
         },
-        canvas_stroke() {
+        stroke() {
             canvas.stroke();
         },
-        canvas_measureText_(text_ptr, text_len, metricsOut) {
+        measureText_(text_ptr, text_len, metricsOut) {
             const text = readCharStr(text_ptr, text_len);
             const metrics = canvas.measureText(text);
             const metrics_map = getWasmTextMetricsMap();
